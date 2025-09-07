@@ -1,0 +1,31 @@
+{
+  "name": "wmgr",
+  "version": "1.0.0",
+  "description": "Terminal wallet manager CLI for sending SOL and USDC on Solana",
+  "type": "module",
+  "bin": "bin/wmgr.js",
+  "scripts": {
+    "start": "node bin/wmgr.js",
+    "wmgr": "node bin/wmgr.js",
+    "build": "echo \"Nothing to build (pure Node CLI)\"",
+    "prepare": "npm run build",
+    "postinstall": "yarn link"
+  },
+  "keywords": [
+    "solana",
+    "cli",
+    "wallet",
+    "spl-token",
+    "usdc"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@solana/spl-token": "^0.4.7",
+    "@solana/web3.js": "^1.95.0",
+    "bip39": "^3.1.0",
+    "commander": "^12.1.0",
+    "ed25519-hd-key": "^1.3.0"
+  },
+  "packageManager": "yarn@4.9.1+sha512.f95ce356460e05be48d66401c1ae64ef84d163dd689964962c6888a9810865e39097a5e9de748876c2e0bf89b232d583c33982773e9903ae7a76257270986538"
+}
