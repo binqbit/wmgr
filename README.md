@@ -1,10 +1,10 @@
-WMGR — Solana Wallet Manager CLI
-================================
+WMGR - Solana & EVM Wallet Manager CLI
+======================================
 
-A minimal, extensible CLI to send SOL and USDC on the Solana blockchain. Designed with a pluggable architecture so you can add new key resolvers (e.g., by wallet name, KMS) and new assets later.
+A minimal CLI to send SOL/USDC on Solana and ETH/ERC-20 (incl. BEP-20/PIP-20 compatible) on EVM networks. Built with a pluggable architecture so you can add new key resolvers (wallet name, KMS, etc.) and new assets later.
 
 Quick Start
-----------
+-----------
 
 1) Install dependencies
 
@@ -14,7 +14,7 @@ Quick Start
 
    node bin/wmgr.js --help
 
-3) (Optional) Install the command globally in your shell
+3) (Optional) Install globally
 
    npm link
    wmgr --help
@@ -22,46 +22,51 @@ Quick Start
 Commands
 --------
 
-- Send SOL
+Solana
+- Send SOL  
+  `wmgr send:sol --to <RECIPIENT_PUBKEY> --amount <SOL> --keyfile <PATH_TO_KEY> [--cluster devnet|testnet|mainnet-beta] [--rpc <URL>]`
 
-  wmgr send:sol --to <RECIPIENT_PUBKEY> --amount <SOL> --keyfile <PATH_TO_KEY> [--cluster devnet|testnet|mainnet-beta] [--rpc <URL>]
+  Example:  
+  `wmgr send:sol --to 9x...abc --amount 0.01 --keyfile C:\keys\id.json --cluster devnet`
 
-  Example:
+- Send USDC (SPL Token)  
+  `wmgr send:usdc --to <RECIPIENT_PUBKEY> --amount <USDC> --keyfile <PATH_TO_KEY> [--cluster devnet|testnet|mainnet-beta] [--rpc <URL>]`
 
-  wmgr send:sol --to 9x...abc --amount 0.01 --keyfile C:\\keys\\id.json --cluster devnet
+  Example:  
+  `wmgr send:usdc --to 9x...abc --amount 1.5 --keyfile C:\keys\id.json --cluster devnet`
 
-- Send USDC (SPL Token)
+- Check Balance  
+  `wmgr balance --address <PUBKEY> [--cluster devnet|testnet|mainnet-beta]`  
+  Or resolve from a wallet instead of an address:  
+  `wmgr balance --keyfile C:\keys\id.json --cluster devnet`  
+  `wmgr balance --seed "abandon ... art" --cluster devnet`  
+  `wmgr balance --svpi [--svpi-name name] [--svpi-file path] --cluster devnet`
 
-  wmgr send:usdc --to <RECIPIENT_PUBKEY> --amount <USDC> --keyfile <PATH_TO_KEY> [--cluster devnet|testnet|mainnet-beta] [--rpc <URL>]
+EVM (Ethereum-compatible)
+- Send native ETH (or the network’s native coin)  
+  `wmgr send:eth --to 0xRECIPIENT --amount <ETH> --privkey 0x... [--network mainnet|sepolia|polygon|bsc|avalanche|optimism|arbitrum|holesky|polygon_amoy|bsc_testnet|avalanche_fuji] [--rpc <URL>] [--gas-price <gwei>] [--gas-limit <num>]`
 
-  Example:
+- Send ERC-20 / BEP-20 / PIP-20 token  
+  `wmgr send:erc20 --token 0xTOKEN --to 0xRECIPIENT --amount <TOKENS> --privkey 0x... [--decimals <num>] [--network ...] [--rpc <URL>] [--gas-price <gwei>] [--gas-limit <num>]`
 
-  wmgr send:usdc --to 9x...abc --amount 1.5 --keyfile C:\\keys\\id.json --cluster devnet
-
-- Check Balance
-
-  wmgr balance --address <PUBKEY> [--cluster devnet|testnet|mainnet-beta]
-
-  Or resolve from a wallet instead of an address:
-
-  wmgr balance --keyfile C:\\keys\\id.json --cluster devnet
-  wmgr balance --seed "abandon ... art" --cluster devnet
-  wmgr balance --svpi [--svpi-name name] [--svpi-file path] --cluster devnet
-
-  Prints a simple list with SOL and USDC balances for the cluster.
+Notes:
+- Default EVM derivation path is `m/44'/60'/0'/0/0`.
+- You can swap `--privkey` for `--privkey-file`, `--seed`, or `--svpi` (mnemonic) just like Solana flows.
+- Public RPC defaults are provided; override with `--rpc` for production-grade endpoints.
 
 SVPI Wallet Interface
 ---------------------
 
-Use `--svpi` to fetch a mnemonic from your external Wallet Manager via its CLI. The tool runs:
+Use `--svpi` to fetch a mnemonic from your external Wallet Manager via its CLI. The tool now talks to SVPI in JSON mode:
 
-  svpi get <name> --password=<password>
+  svpi --mode=json get <name> --password=<password> [--file=<path>]
 
-It parses a line like `Data: <mnemonic>` from the command output and uses it to derive the key.
+The CLI expects the `svpi.response.v1` envelope and reads `result.data` as the mnemonic.
 
-Interactive flow:
+Interactive flow (works for both Solana and EVM):
 
-  wmgr send:sol --to <RECIPIENT_PUBKEY> --amount 0.01 --svpi --cluster devnet
+  wmgr send:sol --to <RECIPIENT_PUBKEY> --amount 0.01 --svpi --cluster devnet  
+  wmgr send:eth --to 0xRECIPIENT --amount 0.01 --svpi --network sepolia
 
 You will be prompted for:
 - SVPI wallet name
@@ -75,19 +80,20 @@ Options:
 Seed-based Key (BIP39)
 ----------------------
 
-Instead of `--keyfile`, you can provide a BIP39 seed phrase:
+Instead of `--keyfile`/`--privkey`, you can provide a BIP39 seed phrase.
 
-  wmgr send:sol --to <RECIPIENT_PUBKEY> --amount 0.01 --seed "abandon abandon ... art" --mnemo trustwallet --cluster devnet
-  # override the path explicitly if needed
-  wmgr send:sol --to <RECIPIENT_PUBKEY> --amount 0.01 --seed "abandon ..." --path "m/44'/501'/0'" --cluster devnet
+Solana example:  
+  `wmgr send:sol --to <RECIPIENT_PUBKEY> --amount 0.01 --seed "abandon ..." --mnemo trustwallet --cluster devnet`
+
+EVM example (default path `m/44'/60'/0'/0/0`):  
+  `wmgr send:eth --to 0xRECIPIENT --amount 0.01 --seed "abandon ..." --network sepolia`
 
 Notes:
-- `--seed` and `--keyfile` are mutually exclusive (use one).
-- Default mnemonic profile is `trustwallet` which uses path `m/44'/501'/0'/0'`.
-- `--seed-passphrase` is optional BIP39 passphrase.
+- Solana: `--seed` and `--keyfile` are mutually exclusive. Default mnemonic profile is `trustwallet` (`m/44'/501'/0'/0'`).
+- EVM: use `--path` to change the derivation; `--seed-passphrase` is supported for both Solana and EVM.
 
-Mnemonic Profiles
------------------
+Mnemonic Profiles (Solana)
+--------------------------
 
 Choose a preset with `--mnemo <name>` (overridden by explicit `--path`):
 - trustwallet: `m/44'/501'/0'/0'` (default)
@@ -95,33 +101,35 @@ Choose a preset with `--mnemo <name>` (overridden by explicit `--path`):
 - solflare: `m/44'/501'/0'`
 - solana_cli: `m/44'/501'/0'/0'`
 
-Key File Format
----------------
+Key File Formats
+----------------
 
-- Uses the standard Solana CLI keypair JSON (an array of 64 numbers). Generate with:
-
-  solana-keygen new -o id.json
+- Solana: standard Solana CLI keypair JSON (array of 64 numbers). Generate with `solana-keygen new -o id.json`.
+- EVM: plain hex private key (with or without `0x`), either passed directly via `--privkey` or stored in a file for `--privkey-file`.
 
 Architecture
 ------------
 
-- Key Resolver
-  - src/keys/index.js defines a KeyResolver interface and a FileKeyResolver.
-  - Future: add resolvers by wallet name, external KMS, etc., then chain them.
+- Key Resolvers
+  - `src/keys/index.js`: Solana key resolver (file-based) and BIP39 derivation.
+  - `src/keys/evm.js`: EVM wallet resolution from privkey / file / BIP39 / SVPI.
 
 - Services
-  - src/services/sol.js handles native SOL transfers.
-  - src/services/spl.js handles SPL token transfers using associated token accounts.
+  - `src/services/sol.js`: native SOL transfers.
+  - `src/services/spl.js`: SPL token transfers.
+  - `src/services/evm.js`: native ETH and ERC-20/PIP-20/BEP-20 transfers.
 
 - Config
-  - src/config/clusters.js centralizes cluster RPC URLs and USDC mint addresses.
+  - `src/config/clusters.js`: Solana cluster RPC URLs and USDC mint addresses.
+  - `src/config/evmNetworks.js`: EVM network presets (RPC + chain IDs).
 
 - CLI
-  - src/cli.js based on commander, with shared options and subcommands.
+  - `src/cli.js`: commander-based CLI, with Solana and EVM subcommands.
 
 Notes
 -----
 
-- Default cluster is devnet. Override with --cluster or --rpc.
-- USDC decimals are inferred from the on-chain mint; mainnet mint is EPjF..., devnet uses 4zMMC....
-- The CLI will create associated token accounts for sender and recipient if missing.
+- Default Solana cluster is `mainnet-beta` (override with `--cluster` or `--rpc`).
+- Default EVM network is `mainnet`; override with `--network` or `--rpc`.
+- USDC decimals are inferred from the mint; ERC-20 decimals are fetched unless `--decimals` is provided.
+- The CLI will create associated token accounts for Solana transfers when needed.
