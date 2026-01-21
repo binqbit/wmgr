@@ -64,7 +64,10 @@ pub fn get_data_from_svpi(
     };
 
     if raw.trim().is_empty() {
-        return Err(anyhow!("SVPI returned no JSON output (exit code {})", output.status));
+        return Err(anyhow!(
+            "SVPI returned no JSON output (exit code {})",
+            output.status
+        ));
     }
 
     let resp: SvpiResponse = serde_json::from_str(raw.trim())
@@ -84,7 +87,11 @@ pub fn get_data_from_svpi(
             .details
             .map(|v| format!(" Details: {v}"))
             .unwrap_or_default();
-        return Err(anyhow!("SVPI error ({}): {}.{details}", err.code, err.message));
+        return Err(anyhow!(
+            "SVPI error ({}): {}.{details}",
+            err.code,
+            err.message
+        ));
     }
 
     let Some(result) = resp.result else {

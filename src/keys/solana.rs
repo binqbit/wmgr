@@ -18,7 +18,11 @@ pub fn resolve_solana_keypair(opts: &SolanaKeyOptions) -> Result<Keypair> {
         || opts.svpi_cmd.is_some()
         || opts.svpi_pass.is_some();
     let has_keyfile = opts.keyfile.is_some();
-    let has_seed = opts.seed.as_ref().map(|s| !s.trim().is_empty()).unwrap_or(false);
+    let has_seed = opts
+        .seed
+        .as_ref()
+        .map(|s| !s.trim().is_empty())
+        .unwrap_or(false);
 
     let sources = [use_svpi, has_keyfile, has_seed]
         .iter()
@@ -29,7 +33,9 @@ pub fn resolve_solana_keypair(opts: &SolanaKeyOptions) -> Result<Keypair> {
         return Err(anyhow!("Provide --keyfile, --seed, or --svpi for Solana"));
     }
     if sources > 1 {
-        return Err(anyhow!("Use only one of --keyfile, --seed, or --svpi for Solana"));
+        return Err(anyhow!(
+            "Use only one of --keyfile, --seed, or --svpi for Solana"
+        ));
     }
 
     let derivation_path = opts
@@ -65,9 +71,13 @@ pub fn resolve_solana_keypair(opts: &SolanaKeyOptions) -> Result<Keypair> {
     keypair_from_mnemonic(mnemonic, &derivation_path, &seed_passphrase)
 }
 
-pub fn keypair_from_mnemonic(mnemonic: &str, derivation_path: &str, passphrase: &str) -> Result<Keypair> {
-    let mnemonic = Mnemonic::from_phrase(mnemonic, Language::English)
-        .context("Invalid BIP39 mnemonic")?;
+pub fn keypair_from_mnemonic(
+    mnemonic: &str,
+    derivation_path: &str,
+    passphrase: &str,
+) -> Result<Keypair> {
+    let mnemonic =
+        Mnemonic::from_phrase(mnemonic, Language::English).context("Invalid BIP39 mnemonic")?;
     let seed = Seed::new(&mnemonic, passphrase);
     let path = DerivationPath::from_absolute_path_str(derivation_path)
         .context("Invalid derivation path")?;
@@ -77,8 +87,8 @@ pub fn keypair_from_mnemonic(mnemonic: &str, derivation_path: &str, passphrase: 
 
 pub fn keypair_from_file(path: &Path) -> Result<Keypair> {
     let raw = fs::read_to_string(path).with_context(|| format!("Failed to read {path:?}"))?;
-    let data: Vec<u8> = serde_json::from_str(&raw)
-        .context("Keypair file must be a JSON array of numbers")?;
+    let data: Vec<u8> =
+        serde_json::from_str(&raw).context("Keypair file must be a JSON array of numbers")?;
     if data.len() != 64 {
         return Err(anyhow!("Keypair file must contain 64 bytes"));
     }

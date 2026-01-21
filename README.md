@@ -33,6 +33,9 @@ EVM
 - Send ERC-20 token:
   wmgr send erc20 <TOKEN> <TO> <AMOUNT> [--decimals <num>] [--privkey <HEX> | --privkey-file <PATH> | --seed <MNEMONIC> | --svpi] [--network <name>] [--rpc <url>] [--gas-price <gwei>] [--gas-limit <num>]
 
+- Balance (native token):
+  wmgr balance [ADDRESS] [--network <name>] [--privkey <HEX> | --privkey-file <PATH> | --seed <MNEMONIC> | --svpi] [--rpc <url>]
+
 ## Key Sources
 
 Solana:
@@ -52,7 +55,7 @@ EVM:
 
 SVPI is accessed in JSON mode (override binary via `--svpi_cmd <path>` if needed):
 
-  svpi --mode=json get <name> --password=<password> [--file=<path>]
+svpi --mode=json get <name> --password=<password> [--file=<path>]
 
 The CLI expects the svpi.response.v1 envelope and reads result.data as the mnemonic.
 
@@ -60,4 +63,6 @@ The CLI expects the svpi.response.v1 envelope and reads result.data as the mnemo
 
 - Default Solana cluster is mainnet-beta.
 - Default EVM network is mainnet.
-- Use --rpc to override public RPC endpoints.
+- Balance defaults to Solana unless --network is set.
+- Use --rpc to override public RPC endpoints (balance uses it for the active mode).
+- EVM networks: mainnet, sepolia, holesky, polygon, polygon_amoy, bsc, bsc_testnet, avalanche, avalanche_fuji, optimism, arbitrum.

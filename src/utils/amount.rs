@@ -15,7 +15,9 @@ pub fn parse_amount_to_u128(amount: &str, decimals: u8) -> Result<u128> {
     if parts.next().is_some() {
         return Err(anyhow!("Invalid amount format: {amount}"));
     }
-    if !left_raw.chars().all(|c| c.is_ascii_digit()) || !right_raw.chars().all(|c| c.is_ascii_digit()) {
+    if !left_raw.chars().all(|c| c.is_ascii_digit())
+        || !right_raw.chars().all(|c| c.is_ascii_digit())
+    {
         return Err(anyhow!("Invalid amount format: {amount}"));
     }
 
@@ -38,7 +40,11 @@ pub fn parse_amount_to_u128(amount: &str, decimals: u8) -> Result<u128> {
 
     let digits = format!("{left_norm}{right}");
     let digits_trimmed = digits.trim_start_matches('0');
-    let final_digits = if digits_trimmed.is_empty() { "0" } else { digits_trimmed };
+    let final_digits = if digits_trimmed.is_empty() {
+        "0"
+    } else {
+        digits_trimmed
+    };
     Ok(final_digits.parse()?)
 }
 

@@ -93,12 +93,100 @@ pub struct SendErc20Args {
 
 #[derive(Args, Debug, Clone)]
 pub struct BalanceArgs {
-    #[arg(value_name = "ADDRESS", help = "Solana address (base58)")]
+    #[arg(value_name = "ADDRESS", help = "Solana (base58) or EVM (hex) address")]
     pub address: Option<String>,
+    #[arg(long, value_enum, help = "EVM network name (enables EVM balance mode)")]
+    pub network: Option<EvmNetworkArg>,
+    #[arg(
+        long,
+        value_name = "URL",
+        help = "Custom RPC URL (Solana or EVM depending on mode)"
+    )]
+    pub rpc: Option<String>,
+    #[arg(long, value_name = "CLUSTER", default_value = "mainnet-beta")]
+    pub cluster: String,
+    #[arg(long, value_enum, default_value_t = CommitmentArg::Confirmed)]
+    pub commitment: CommitmentArg,
     #[command(flatten)]
-    pub key: SolanaKeyOptions,
-    #[command(flatten)]
-    pub rpc: SolanaRpcOptions,
+    pub key: BalanceKeyOptions,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct BalanceKeyOptions {
+    #[arg(long, value_name = "PATH", help = "Solana keypair file (JSON array)")]
+    pub keyfile: Option<PathBuf>,
+    #[arg(
+        long,
+        value_name = "HEX",
+        help = "EVM private key (with or without 0x)"
+    )]
+    pub privkey: Option<String>,
+    #[arg(long, value_name = "PATH", help = "File containing EVM private key")]
+    pub privkey_file: Option<PathBuf>,
+    #[arg(long, value_name = "MNEMONIC", help = "BIP39 seed phrase")]
+    pub seed: Option<String>,
+    #[arg(long, value_name = "PATH", help = "BIP44 derivation path")]
+    pub path: Option<String>,
+    #[arg(
+        long,
+        value_name = "PROFILE",
+        default_value = "trustwallet",
+        help = "Mnemonic profile (trustwallet|phantom|solflare|solana_cli)"
+    )]
+    pub mnemo: String,
+    #[arg(long, value_name = "PASS", help = "BIP39 passphrase")]
+    pub seed_passphrase: Option<String>,
+    #[arg(long, help = "Use SVPI to fetch mnemonic")]
+    pub svpi: bool,
+    #[arg(long, value_name = "NAME", help = "SVPI wallet name")]
+    pub svpi_name: Option<String>,
+    #[arg(long, value_name = "PATH", help = "SVPI file mode path")]
+    pub svpi_file: Option<PathBuf>,
+    #[arg(
+        long = "svpi_cmd",
+        value_name = "PATH",
+        help = "SVPI command path (defaults to svpi)",
+        alias = "svpi-cmd"
+    )]
+    pub svpi_cmd: Option<PathBuf>,
+    #[arg(
+        long,
+        value_name = "PASS",
+        help = "SVPI password (optional, otherwise prompt)"
+    )]
+    pub svpi_pass: Option<String>,
+}
+
+impl BalanceKeyOptions {
+    pub fn into_solana(self) -> SolanaKeyOptions {
+        SolanaKeyOptions {
+            keyfile: self.keyfile,
+            seed: self.seed,
+            path: self.path,
+            mnemo: self.mnemo,
+            seed_passphrase: self.seed_passphrase,
+            svpi: self.svpi,
+            svpi_name: self.svpi_name,
+            svpi_file: self.svpi_file,
+            svpi_cmd: self.svpi_cmd,
+            svpi_pass: self.svpi_pass,
+        }
+    }
+
+    pub fn into_evm(self) -> EvmKeyOptions {
+        EvmKeyOptions {
+            privkey: self.privkey,
+            privkey_file: self.privkey_file,
+            seed: self.seed,
+            path: self.path,
+            seed_passphrase: self.seed_passphrase,
+            svpi: self.svpi,
+            svpi_name: self.svpi_name,
+            svpi_file: self.svpi_file,
+            svpi_cmd: self.svpi_cmd,
+            svpi_pass: self.svpi_pass,
+        }
+    }
 }
 
 #[derive(Args, Debug, Clone)]
@@ -131,13 +219,21 @@ pub struct SolanaKeyOptions {
         alias = "svpi-cmd"
     )]
     pub svpi_cmd: Option<PathBuf>,
-    #[arg(long, value_name = "PASS", help = "SVPI password (optional, otherwise prompt)")]
+    #[arg(
+        long,
+        value_name = "PASS",
+        help = "SVPI password (optional, otherwise prompt)"
+    )]
     pub svpi_pass: Option<String>,
 }
 
 #[derive(Args, Debug, Clone)]
 pub struct EvmKeyOptions {
-    #[arg(long, value_name = "HEX", help = "EVM private key (with or without 0x)")]
+    #[arg(
+        long,
+        value_name = "HEX",
+        help = "EVM private key (with or without 0x)"
+    )]
     pub privkey: Option<String>,
     #[arg(long, value_name = "PATH", help = "File containing EVM private key")]
     pub privkey_file: Option<PathBuf>,
@@ -160,7 +256,11 @@ pub struct EvmKeyOptions {
         alias = "svpi-cmd"
     )]
     pub svpi_cmd: Option<PathBuf>,
-    #[arg(long, value_name = "PASS", help = "SVPI password (optional, otherwise prompt)")]
+    #[arg(
+        long,
+        value_name = "PASS",
+        help = "SVPI password (optional, otherwise prompt)"
+    )]
     pub svpi_pass: Option<String>,
 }
 
@@ -176,8 +276,8 @@ pub struct SolanaRpcOptions {
 
 #[derive(Args, Debug, Clone)]
 pub struct EvmTxOptions {
-    #[arg(long, value_name = "NETWORK", default_value = "mainnet")]
-    pub network: String,
+    #[arg(long, value_enum, default_value_t = EvmNetworkArg::Mainnet)]
+    pub network: EvmNetworkArg,
     #[arg(long, value_name = "URL", help = "Custom EVM RPC URL")]
     pub rpc: Option<String>,
     #[arg(long, value_name = "GWEI", help = "Gas price in gwei")]
@@ -191,4 +291,48 @@ pub enum CommitmentArg {
     Processed,
     Confirmed,
     Finalized,
+}
+
+#[derive(ValueEnum, Debug, Clone, Copy)]
+pub enum EvmNetworkArg {
+    #[value(name = "mainnet")]
+    Mainnet,
+    #[value(name = "sepolia")]
+    Sepolia,
+    #[value(name = "holesky")]
+    Holesky,
+    #[value(name = "polygon")]
+    Polygon,
+    #[value(name = "polygon_amoy")]
+    PolygonAmoy,
+    #[value(name = "bsc")]
+    Bsc,
+    #[value(name = "bsc_testnet")]
+    BscTestnet,
+    #[value(name = "avalanche")]
+    Avalanche,
+    #[value(name = "avalanche_fuji")]
+    AvalancheFuji,
+    #[value(name = "optimism")]
+    Optimism,
+    #[value(name = "arbitrum")]
+    Arbitrum,
+}
+
+impl EvmNetworkArg {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            EvmNetworkArg::Mainnet => "mainnet",
+            EvmNetworkArg::Sepolia => "sepolia",
+            EvmNetworkArg::Holesky => "holesky",
+            EvmNetworkArg::Polygon => "polygon",
+            EvmNetworkArg::PolygonAmoy => "polygon_amoy",
+            EvmNetworkArg::Bsc => "bsc",
+            EvmNetworkArg::BscTestnet => "bsc_testnet",
+            EvmNetworkArg::Avalanche => "avalanche",
+            EvmNetworkArg::AvalancheFuji => "avalanche_fuji",
+            EvmNetworkArg::Optimism => "optimism",
+            EvmNetworkArg::Arbitrum => "arbitrum",
+        }
+    }
 }

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use anyhow::{anyhow, Result};
 use ethers::prelude::*;
 use ethers::types::{Address, U256};
-use ethers::utils::{parse_ether, parse_units};
+use ethers::utils::{format_units, parse_ether, parse_units};
 
 use crate::config::evm_networks::{get_evm_network_config, EvmNetworkConfig};
 
@@ -31,6 +31,15 @@ pub fn create_evm_provider(
     Ok((provider, cfg))
 }
 
+pub async fn get_native_balance(
+    provider: Provider<Http>,
+    address: Address,
+) -> Result<(U256, String)> {
+    let balance = provider.get_balance(address, None).await?;
+    let formatted = format_units(balance, 18)?;
+    Ok((balance, formatted))
+}
+
 pub async fn transfer_eth(
     provider: Provider<Http>,
     wallet: LocalWallet,
@@ -40,7 +49,9 @@ pub async fn transfer_eth(
     gas_limit: Option<u64>,
     chain_id: u64,
 ) -> Result<TxHash> {
-    let to_addr: Address = to.parse().map_err(|err| anyhow!("Invalid recipient address: {err}"))?;
+    let to_addr: Address = to
+        .parse()
+        .map_err(|err| anyhow!("Invalid recipient address: {err}"))?;
     let value = parse_ether(amount)?;
 
     let wallet = wallet.with_chain_id(chain_id);
@@ -72,8 +83,12 @@ pub async fn transfer_erc20(
     gas_limit: Option<u64>,
     chain_id: u64,
 ) -> Result<TxHash> {
-    let token_addr: Address = token.parse().map_err(|err| anyhow!("Invalid token address: {err}"))?;
-    let to_addr: Address = to.parse().map_err(|err| anyhow!("Invalid recipient address: {err}"))?;
+    let token_addr: Address = token
+        .parse()
+        .map_err(|err| anyhow!("Invalid token address: {err}"))?;
+    let to_addr: Address = to
+        .parse()
+        .map_err(|err| anyhow!("Invalid recipient address: {err}"))?;
 
     let wallet = wallet.with_chain_id(chain_id);
     let client = SignerMiddleware::new(provider, wallet);
@@ -100,11 +115,10 @@ pub async fn transfer_erc20(
     Ok(tx_hash)
 }
 
-pub async fn get_erc20_meta(
-    provider: Provider<Http>,
-    token: &str,
-) -> Result<Erc20Meta> {
-    let token_addr: Address = token.parse().map_err(|err| anyhow!("Invalid token address: {err}"))?;
+pub async fn get_erc20_meta(provider: Provider<Http>, token: &str) -> Result<Erc20Meta> {
+    let token_addr: Address = token
+        .parse()
+        .map_err(|err| anyhow!("Invalid token address: {err}"))?;
     let contract = IERC20::new(token_addr, provider.into());
     let decimals = contract.decimals().call().await?;
     let symbol = contract.symbol().call().await.ok();

@@ -44,7 +44,7 @@ async fn send_usdc(args: SendUsdcArgs) -> Result<()> {
 
 async fn send_eth(args: SendEthArgs) -> Result<()> {
     let wallet = resolve_evm_wallet(&args.key)?;
-    let (provider, cfg) = create_evm_provider(&args.tx.network, args.tx.rpc.as_deref())?;
+    let (provider, cfg) = create_evm_provider(args.tx.network.as_str(), args.tx.rpc.as_deref())?;
 
     let tx_hash = transfer_eth(
         provider,
@@ -65,7 +65,7 @@ async fn send_eth(args: SendEthArgs) -> Result<()> {
 
 async fn send_erc20(args: SendErc20Args) -> Result<()> {
     let wallet = resolve_evm_wallet(&args.key)?;
-    let (provider, cfg) = create_evm_provider(&args.tx.network, args.tx.rpc.as_deref())?;
+    let (provider, cfg) = create_evm_provider(args.tx.network.as_str(), args.tx.rpc.as_deref())?;
 
     let meta = get_erc20_meta(provider.clone(), &args.token).await.ok();
     let decimals = args.decimals.or_else(|| meta.as_ref().map(|m| m.decimals));
@@ -83,7 +83,9 @@ async fn send_erc20(args: SendErc20Args) -> Result<()> {
     )
     .await?;
 
-    let label = meta.and_then(|m| m.symbol).unwrap_or_else(|| "token".to_string());
+    let label = meta
+        .and_then(|m| m.symbol)
+        .unwrap_or_else(|| "token".to_string());
     println!(
         "SUCCESS: Sent {} {} on {} (chainId {}). Tx hash: {tx_hash}",
         args.amount, label, cfg.name, cfg.chain_id

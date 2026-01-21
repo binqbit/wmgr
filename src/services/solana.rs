@@ -7,8 +7,8 @@ use solana_sdk::program_pack::Pack;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::signature::Keypair;
 use solana_sdk::signer::Signer;
-use solana_system_interface::instruction as system_instruction;
 use solana_sdk::transaction::Transaction;
+use solana_system_interface::instruction as system_instruction;
 use spl_associated_token_account_interface::address::get_associated_token_address;
 use spl_associated_token_account_interface::instruction::create_associated_token_account_idempotent;
 use spl_token::instruction::transfer_checked;
@@ -30,7 +30,8 @@ pub fn create_rpc_client(rpc_url: &str, commitment: CommitmentConfig) -> RpcClie
 }
 
 pub fn transfer_sol(client: &RpcClient, from: &Keypair, to: &str, amount: &str) -> Result<String> {
-    let to_pubkey = Pubkey::from_str(to).map_err(|err| anyhow!("Invalid recipient address: {err}"))?;
+    let to_pubkey =
+        Pubkey::from_str(to).map_err(|err| anyhow!("Invalid recipient address: {err}"))?;
     let lamports = parse_amount_to_u64(amount, 9)?;
 
     let instruction = system_instruction::transfer(&from.pubkey(), &to_pubkey, lamports);
@@ -53,8 +54,10 @@ pub fn transfer_spl_token(
     amount: &str,
     mint: &str,
 ) -> Result<String> {
-    let to_owner = Pubkey::from_str(to).map_err(|err| anyhow!("Invalid recipient address: {err}"))?;
-    let mint_pubkey = Pubkey::from_str(mint).map_err(|err| anyhow!("Invalid mint address: {err}"))?;
+    let to_owner =
+        Pubkey::from_str(to).map_err(|err| anyhow!("Invalid recipient address: {err}"))?;
+    let mint_pubkey =
+        Pubkey::from_str(mint).map_err(|err| anyhow!("Invalid mint address: {err}"))?;
 
     let decimals = get_mint_decimals(client, &mint_pubkey).unwrap_or(6);
     let amount_u64 = parse_amount_to_u64(amount, decimals)?;

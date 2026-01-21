@@ -18,7 +18,11 @@ pub fn resolve_evm_wallet(opts: &EvmKeyOptions) -> Result<LocalWallet> {
         || opts.svpi_pass.is_some();
     let has_privkey = opts.privkey.is_some();
     let has_privkey_file = opts.privkey_file.is_some();
-    let has_seed = opts.seed.as_ref().map(|s| !s.trim().is_empty()).unwrap_or(false);
+    let has_seed = opts
+        .seed
+        .as_ref()
+        .map(|s| !s.trim().is_empty())
+        .unwrap_or(false);
 
     let sources = [use_svpi, has_privkey, has_privkey_file, has_seed]
         .iter()
@@ -26,10 +30,14 @@ pub fn resolve_evm_wallet(opts: &EvmKeyOptions) -> Result<LocalWallet> {
         .count();
 
     if sources == 0 {
-        return Err(anyhow!("Provide --privkey, --privkey-file, --seed, or --svpi for EVM"));
+        return Err(anyhow!(
+            "Provide --privkey, --privkey-file, --seed, or --svpi for EVM"
+        ));
     }
     if sources > 1 {
-        return Err(anyhow!("Use only one of --privkey, --privkey-file, --seed, or --svpi for EVM"));
+        return Err(anyhow!(
+            "Use only one of --privkey, --privkey-file, --seed, or --svpi for EVM"
+        ));
     }
 
     if has_privkey {
@@ -71,7 +79,11 @@ pub fn resolve_evm_wallet(opts: &EvmKeyOptions) -> Result<LocalWallet> {
     wallet_from_mnemonic(mnemonic, derivation_path, &seed_passphrase)
 }
 
-pub fn wallet_from_mnemonic(mnemonic: &str, derivation_path: &str, passphrase: &str) -> Result<LocalWallet> {
+pub fn wallet_from_mnemonic(
+    mnemonic: &str,
+    derivation_path: &str,
+    passphrase: &str,
+) -> Result<LocalWallet> {
     let mut builder = MnemonicBuilder::<English>::default();
     builder = builder.phrase(mnemonic).password(passphrase);
     builder = builder
@@ -89,7 +101,9 @@ fn normalize_privkey(hex: &str) -> Result<String> {
     }
     let without_prefix = trimmed.strip_prefix("0x").unwrap_or(trimmed);
     if without_prefix.len() != 64 || !without_prefix.chars().all(|c| c.is_ascii_hexdigit()) {
-        return Err(anyhow!("Private key must be 64 hex chars (with or without 0x prefix)"));
+        return Err(anyhow!(
+            "Private key must be 64 hex chars (with or without 0x prefix)"
+        ));
     }
     Ok(format!("0x{}", without_prefix.to_lowercase()))
 }
