@@ -1,0 +1,24 @@
+[package]
+name = "wmgr"
+version = "0.1.0"
+edition = "2021"
+description = "Wallet Manager CLI for Solana and EVM networks"
+
+[dependencies]
+anyhow = "1.0.100"
+clap = { version = "4.5.54", features = ["derive"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+bip39 = { package = "tiny-bip39", version = "2.0.0" }
+solana-client = "3.1.7"
+solana-sdk = "3.0.0"
+solana-commitment-config = "3.1.0"
+solana-derivation-path = "3.0.0"
+solana-keypair = { version = "3.1.0", features = ["seed-derivable"] }
+solana-system-interface = "2.0.0"
+spl-associated-token-account = "8.0.0"
+spl-associated-token-account-interface = "2.0.0"
+spl-token = "9.0.0"
+ethers = "2.0"
+rpassword = "7.4.0"
+tokio = { version = "1.49.0", features = ["rt-multi-thread", "macros"] }
