@@ -1,4 +1,4 @@
-# WMGR (Rust)
+# wmgr - Wallet Manager CLI
 
 Compact CLI for Solana and EVM wallets: balance, send, and Raydium SOL/USDC trading.
 
