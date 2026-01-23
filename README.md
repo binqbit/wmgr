@@ -1,68 +1,107 @@
 # WMGR (Rust)
 
-Rust rewrite of the WMGR CLI for Solana and EVM networks with a cleaner module layout and more ergonomic commands.
+Compact CLI for Solana and EVM wallets: balance, send, and Raydium SOL/USDC trading.
 
 ## Quick Start
 
-1. Build
+```sh
+cargo build
+cargo run -- --help
+```
 
-   cargo build
+## Commands (ordered)
 
-2. Run
+### 1) Balance
 
-   cargo run -- --help
+Solana (default):
 
-## Commands
+```sh
+wmgr balance [ADDRESS] [--keyfile <PATH> | --seed <MNEMONIC> | --svpi] \
+  [--cluster <name>] [--rpc <url>] [--commitment <processed|confirmed|finalized>]
+```
 
-Solana
+EVM (enable with `--network`):
 
-- Send SOL:
-  wmgr send sol <TO> <AMOUNT> [--keyfile <PATH> | --seed <MNEMONIC> | --svpi] [--cluster <name>] [--rpc <url>] [--commitment <processed|confirmed|finalized>]
+```sh
+wmgr balance [ADDRESS] --network <name> \
+  [--privkey <HEX> | --privkey-file <PATH> | --seed <MNEMONIC> | --svpi] \
+  [--rpc <url>]
+```
 
-- Send USDC (SPL):
-  wmgr send usdc <TO> <AMOUNT> [--keyfile <PATH> | --seed <MNEMONIC> | --svpi] [--cluster <name>] [--rpc <url>] [--commitment <processed|confirmed|finalized>]
+### 2) Send
 
-- Balance:
-  wmgr balance [ADDRESS] [--keyfile <PATH> | --seed <MNEMONIC> | --svpi] [--cluster <name>] [--rpc <url>] [--commitment <processed|confirmed|finalized>]
+Solana:
 
-EVM
+```sh
+wmgr send sol  <TO> <AMOUNT> [--keyfile <PATH> | --seed <MNEMONIC> | --svpi] \
+  [--cluster <name>] [--rpc <url>] [--commitment <processed|confirmed|finalized>]
+wmgr send usdc <TO> <AMOUNT> [--keyfile <PATH> | --seed <MNEMONIC> | --svpi] \
+  [--cluster <name>] [--rpc <url>] [--commitment <processed|confirmed|finalized>]
+```
 
-- Send native token:
-  wmgr send eth <TO> <AMOUNT> [--privkey <HEX> | --privkey-file <PATH> | --seed <MNEMONIC> | --svpi] [--network <name>] [--rpc <url>] [--gas-price <gwei>] [--gas-limit <num>]
+EVM:
 
-- Send ERC-20 token:
-  wmgr send erc20 <TOKEN> <TO> <AMOUNT> [--decimals <num>] [--privkey <HEX> | --privkey-file <PATH> | --seed <MNEMONIC> | --svpi] [--network <name>] [--rpc <url>] [--gas-price <gwei>] [--gas-limit <num>]
+```sh
+wmgr send eth   <TO> <AMOUNT> [--privkey <HEX> | --privkey-file <PATH> | --seed <MNEMONIC> | --svpi] \
+  [--network <name>] [--rpc <url>] [--gas-price <gwei>] [--gas-limit <num>]
+wmgr send erc20 <TOKEN> <TO> <AMOUNT> [--decimals <num>] \
+  [--privkey <HEX> | --privkey-file <PATH> | --seed <MNEMONIC> | --svpi] \
+  [--network <name>] [--rpc <url>] [--gas-price <gwei>] [--gas-limit <num>]
+```
 
-- Balance (native token):
-  wmgr balance [ADDRESS] [--network <name>] [--privkey <HEX> | --privkey-file <PATH> | --seed <MNEMONIC> | --svpi] [--rpc <url>]
+### 3) Price
+
+```sh
+wmgr price <sol|usdc> [--keyfile <PATH> | --seed <MNEMONIC> | --svpi] \
+  [--cluster <name>] [--rpc <url>] [--commitment <processed|confirmed|finalized>]
+```
+
+### 4) Buy
+
+```sh
+wmgr buy <AMOUNT> <sol|usdc> [--slippage <percent>] \
+  [--keyfile <PATH> | --seed <MNEMONIC> | --svpi] \
+  [--cluster <name>] [--rpc <url>] [--commitment <processed|confirmed|finalized>]
+```
+
+### 5) Sell
+
+```sh
+wmgr sell <AMOUNT> <sol|usdc> [--slippage <percent>] \
+  [--keyfile <PATH> | --seed <MNEMONIC> | --svpi] \
+  [--cluster <name>] [--rpc <url>] [--commitment <processed|confirmed|finalized>]
+```
 
 ## Key Sources
 
 Solana:
 
-- --keyfile <PATH> Solana CLI JSON keypair file (array of 64 numbers)
-- --seed <MNEMONIC> BIP39 seed phrase (use --path or --mnemo to select derivation)
-- --svpi Fetch mnemonic from SVPI (prompts for name and password)
+- `--keyfile <PATH>` Solana CLI JSON keypair (64-byte array)
+- `--seed <MNEMONIC>` BIP39 seed phrase
+- `--svpi` Fetch mnemonic from SVPI
 
 EVM:
 
-- --privkey <HEX> Private key (with or without 0x prefix)
-- --privkey-file <PATH> File containing the private key
-- --seed <MNEMONIC> BIP39 seed phrase (use --path to select derivation)
-- --svpi Fetch mnemonic from SVPI (prompts for name and password)
+- `--privkey <HEX>` Private key (with or without 0x)
+- `--privkey-file <PATH>` File containing the private key
+- `--seed <MNEMONIC>` BIP39 seed phrase
+- `--svpi` Fetch mnemonic from SVPI
 
-## SVPI Integration
+## SVPI (JSON mode)
 
-SVPI is accessed in JSON mode (override binary via `--svpi_cmd <path>` if needed):
-
+```sh
 svpi --mode=json get <name> --password=<password> [--file=<path>]
+```
 
-The CLI expects the svpi.response.v1 envelope and reads result.data as the mnemonic.
+Use `--svpi_cmd <path>` to point to a custom binary. The CLI expects the
+`svpi.response.v1` envelope and reads `result.data` as the mnemonic.
 
 ## Notes
 
-- Default Solana cluster is mainnet-beta.
-- Default EVM network is mainnet.
-- Balance defaults to Solana unless --network is set.
-- Use --rpc to override public RPC endpoints (balance uses it for the active mode).
-- EVM networks: mainnet, sepolia, holesky, polygon, polygon_amoy, bsc, bsc_testnet, avalanche, avalanche_fuji, optimism, arbitrum.
+- Default Solana cluster: `mainnet-beta`
+- Default EVM network: `mainnet`
+- Balance uses Solana unless `--network` is set
+- `--slippage` is a percent value (default `0.1` = 0.1%)
+- EVM networks: `mainnet`, `sepolia`, `holesky`, `polygon`, `polygon_amoy`,
+  `bsc`, `bsc_testnet`, `avalanche`, `avalanche_fuji`, `optimism`, `arbitrum`
+- Buy/Sell uses the Raydium SOL/USDC AMM pool (quotes via Raydium HTTP API)

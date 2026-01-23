@@ -1,12 +1,14 @@
 use anyhow::Result;
 
-use crate::cli::{SendCommand, SendErc20Args, SendEthArgs, SendKind, SendSolArgs, SendUsdcArgs};
-use crate::commands::commitment_from_arg;
+use crate::app::cli::{
+    SendCommand, SendErc20Args, SendEthArgs, SendKind, SendSolArgs, SendUsdcArgs,
+};
+use crate::app::commands::commitment_from_arg;
 use crate::config::clusters::{get_cluster_config, get_usdc_mint_for_cluster};
-use crate::keys::evm::resolve_evm_wallet;
-use crate::keys::solana::resolve_solana_keypair;
-use crate::services::evm::{create_evm_provider, get_erc20_meta, transfer_erc20, transfer_eth};
-use crate::services::solana::{create_rpc_client, transfer_sol, transfer_spl_token};
+use crate::infra::evm::{create_evm_provider, get_erc20_meta, transfer_erc20, transfer_eth};
+use crate::infra::keys::evm::resolve_evm_wallet;
+use crate::infra::keys::solana::resolve_solana_keypair;
+use crate::infra::solana::{create_rpc_client, transfer_sol, transfer_spl_token};
 
 pub async fn handle_send(cmd: SendCommand) -> Result<()> {
     match cmd.kind {

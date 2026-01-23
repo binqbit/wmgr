@@ -6,13 +6,13 @@ use ethers::types::Address;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::signer::Signer as SolanaSigner;
 
-use crate::cli::BalanceArgs;
-use crate::commands::commitment_from_arg;
+use crate::app::cli::BalanceArgs;
+use crate::app::commands::commitment_from_arg;
 use crate::config::clusters::{get_cluster_config, get_usdc_mint_for_cluster};
-use crate::keys::evm::resolve_evm_wallet;
-use crate::keys::solana::resolve_solana_keypair;
-use crate::services::evm::{create_evm_provider, get_native_balance};
-use crate::services::solana::{create_rpc_client, get_balances};
+use crate::infra::evm::{create_evm_provider, get_native_balance};
+use crate::infra::keys::evm::resolve_evm_wallet;
+use crate::infra::keys::solana::resolve_solana_keypair;
+use crate::infra::solana::{create_rpc_client, get_balances};
 
 pub async fn handle_balance(args: BalanceArgs) -> Result<()> {
     let BalanceArgs {

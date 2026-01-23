@@ -4,8 +4,8 @@ use std::str::FromStr;
 use anyhow::{anyhow, Context, Result};
 use ethers::signers::{coins_bip39::English, LocalWallet, MnemonicBuilder};
 
-use crate::cli::EvmKeyOptions;
-use crate::keys::svpi::get_mnemonic_from_svpi;
+use super::svpi::get_mnemonic_from_svpi;
+use crate::app::cli::EvmKeyOptions;
 use crate::utils::prompt::{prompt, prompt_hidden};
 
 pub const DEFAULT_EVM_PATH: &str = "m/44'/60'/0'/0/0";

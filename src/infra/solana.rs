@@ -14,7 +14,7 @@ use spl_associated_token_account_interface::instruction::create_associated_token
 use spl_token::instruction::transfer_checked;
 use spl_token::state::{Account as TokenAccount, Mint};
 
-use crate::utils::amount::{format_integer_amount, parse_amount_to_u64};
+use crate::core::amount::{format_integer_amount, parse_amount_to_u64};
 
 pub struct BalanceResult {
     pub address: String,

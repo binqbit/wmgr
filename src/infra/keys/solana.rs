@@ -6,9 +6,9 @@ use bip39::{Language, Mnemonic, Seed};
 use solana_derivation_path::DerivationPath;
 use solana_keypair::{seed_derivable::keypair_from_seed_and_derivation_path, Keypair};
 
-use crate::cli::SolanaKeyOptions;
+use super::svpi::get_mnemonic_from_svpi;
+use crate::app::cli::SolanaKeyOptions;
 use crate::config::mnemonics::get_mnemonic_profile;
-use crate::keys::svpi::get_mnemonic_from_svpi;
 use crate::utils::prompt::{prompt, prompt_hidden};
 
 pub fn resolve_solana_keypair(opts: &SolanaKeyOptions) -> Result<Keypair> {
