@@ -10,7 +10,7 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 )]
 pub struct Cli {
     #[command(subcommand)]
-    pub command: Command,
+    pub command: Option<Command>,
 }
 
 #[derive(Subcommand, Debug)]
@@ -25,6 +25,120 @@ pub enum Command {
     Buy(TradeArgs),
     /// Sell SOL/USDC on Raydium
     Sell(TradeArgs),
+    /// Start interactive mode (REPL)
+    Repl,
+    /// Manage saved defaults (.wmgr)
+    Config(ConfigArgs),
+    /// Print SHA256 hash of this executable (and SVPI when enabled)
+    SelfHash,
+}
+
+#[derive(Args, Debug)]
+pub struct ConfigArgs {
+    #[command(subcommand)]
+    pub command: ConfigCommand,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum ConfigCommand {
+    /// Show current config values
+    Show,
+    /// Update config values
+    Set(ConfigSetArgs),
+    /// Reset config to defaults
+    Reset,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct ConfigSetArgs {
+    #[arg(
+        long,
+        help = "Enable SVPI mode (default key source)",
+        conflicts_with = "no_svpi"
+    )]
+    pub svpi: bool,
+    #[arg(long = "no-svpi", help = "Disable SVPI mode", conflicts_with = "svpi")]
+    pub no_svpi: bool,
+    #[arg(
+        long,
+        value_name = "NAME",
+        help = "Default SVPI wallet name",
+        alias = "svpi_name"
+    )]
+    pub svpi_name: Option<String>,
+    #[arg(
+        long,
+        value_name = "CLUSTER",
+        help = "Default Solana cluster (default mainnet-beta)",
+        alias = "solana_cluster",
+        alias = "solana-cluster"
+    )]
+    pub cluster: Option<String>,
+    #[arg(
+        long,
+        value_enum,
+        value_name = "LEVEL",
+        help = "Default Solana commitment (default confirmed)",
+        alias = "solana_commitment",
+        alias = "solana-commitment"
+    )]
+    pub commitment: Option<CommitmentArg>,
+    #[arg(
+        long,
+        value_name = "PERCENT",
+        help = "Default slippage percent for buy/sell (default 0.1)"
+    )]
+    pub slippage: Option<f64>,
+    #[arg(
+        long,
+        value_enum,
+        value_name = "NETWORK",
+        help = "Default EVM network (default mainnet)",
+        alias = "evm_network",
+        alias = "evm-network"
+    )]
+    pub network: Option<EvmNetworkArg>,
+    #[arg(
+        long,
+        value_name = "URL",
+        help = "Default RPC URL (set both Solana and EVM unless --cluster or --network is present)",
+        alias = "solana_rpc",
+        alias = "solana-rpc",
+        alias = "evm_rpc",
+        alias = "evm-rpc"
+    )]
+    pub rpc: Option<String>,
+    #[arg(
+        long,
+        value_name = "GWEI",
+        help = "Default EVM gas price in gwei",
+        alias = "evm_gas_price",
+        alias = "evm-gas-price"
+    )]
+    pub gas_price: Option<String>,
+    #[arg(
+        long,
+        value_name = "NUMBER",
+        help = "Default EVM gas limit override",
+        alias = "evm_gas_limit",
+        alias = "evm-gas-limit"
+    )]
+    pub gas_limit: Option<u64>,
+    #[arg(
+        long = "svpi_cmd",
+        value_name = "PATH",
+        help = "SVPI command path (defaults to svpi)",
+        alias = "svpi-cmd"
+    )]
+    pub svpi_cmd: Option<PathBuf>,
+    #[arg(
+        long,
+        value_name = "PATH",
+        help = "SVPI file mode path",
+        alias = "svpi_file",
+        alias = "svpi-file"
+    )]
+    pub svpi_file: Option<PathBuf>,
 }
 
 #[derive(Args, Debug, Clone)]
@@ -39,10 +153,19 @@ pub struct BalanceArgs {
         help = "Custom RPC URL (Solana or EVM depending on mode)"
     )]
     pub rpc: Option<String>,
-    #[arg(long, value_name = "CLUSTER", default_value = "mainnet-beta")]
-    pub cluster: String,
-    #[arg(long, value_enum, default_value_t = CommitmentArg::Confirmed)]
-    pub commitment: CommitmentArg,
+    #[arg(
+        long,
+        value_name = "CLUSTER",
+        help = "Solana cluster (default mainnet-beta)"
+    )]
+    pub cluster: Option<String>,
+    #[arg(
+        long,
+        value_enum,
+        value_name = "LEVEL",
+        help = "Solana commitment (default confirmed)"
+    )]
+    pub commitment: Option<CommitmentArg>,
     #[command(flatten)]
     pub key: BalanceKeyOptions,
 }
@@ -214,10 +337,9 @@ pub struct TradeArgs {
     #[arg(
         long,
         value_name = "PERCENT",
-        default_value_t = 0.1,
-        help = "Slippage tolerance percent"
+        help = "Slippage tolerance percent (default 0.1)"
     )]
-    pub slippage: f64,
+    pub slippage: Option<f64>,
     #[command(flatten)]
     pub key: SolanaKeyOptions,
     #[command(flatten)]
@@ -301,18 +423,32 @@ pub struct EvmKeyOptions {
 
 #[derive(Args, Debug, Clone)]
 pub struct SolanaRpcOptions {
-    #[arg(long, value_name = "CLUSTER", default_value = "mainnet-beta")]
-    pub cluster: String,
+    #[arg(
+        long,
+        value_name = "CLUSTER",
+        help = "Solana cluster (default mainnet-beta)"
+    )]
+    pub cluster: Option<String>,
     #[arg(long, value_name = "URL", help = "Custom Solana RPC URL")]
     pub rpc: Option<String>,
-    #[arg(long, value_enum, default_value_t = CommitmentArg::Confirmed)]
-    pub commitment: CommitmentArg,
+    #[arg(
+        long,
+        value_enum,
+        value_name = "LEVEL",
+        help = "Solana commitment (default confirmed)"
+    )]
+    pub commitment: Option<CommitmentArg>,
 }
 
 #[derive(Args, Debug, Clone)]
 pub struct EvmTxOptions {
-    #[arg(long, value_enum, default_value_t = EvmNetworkArg::Mainnet)]
-    pub network: EvmNetworkArg,
+    #[arg(
+        long,
+        value_enum,
+        value_name = "NETWORK",
+        help = "EVM network (default mainnet)"
+    )]
+    pub network: Option<EvmNetworkArg>,
     #[arg(long, value_name = "URL", help = "Custom EVM RPC URL")]
     pub rpc: Option<String>,
     #[arg(long, value_name = "GWEI", help = "Gas price in gwei")]
