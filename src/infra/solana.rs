@@ -16,6 +16,7 @@ use spl_token::state::{Account as TokenAccount, Mint};
 
 use crate::core::amount::{format_integer_amount, parse_amount_to_u64};
 
+#[allow(unused)]
 pub struct BalanceResult {
     pub address: String,
     pub sol_lamports: u64,

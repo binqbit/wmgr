@@ -31,6 +31,7 @@ pub fn get_mnemonic_profile(name: &str) -> &'static str {
         .unwrap_or(MNEMONIC_PROFILES[0].path)
 }
 
+#[allow(unused)]
 pub fn list_mnemonic_profiles() -> Vec<&'static str> {
     MNEMONIC_PROFILES.iter().map(|p| p.name).collect()
 }

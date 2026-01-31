@@ -107,6 +107,7 @@ pub fn get_data_from_svpi(
     Ok(data)
 }
 
+#[allow(unused)]
 pub fn get_mnemonic_from_svpi(
     name: &str,
     password: &str,

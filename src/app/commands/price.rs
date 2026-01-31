@@ -9,13 +9,16 @@ use solana_sdk::pubkey::Pubkey;
 
 use crate::app::cli::{PriceArgs, SwapToken};
 use crate::app::commands::commitment_from_arg;
+use crate::app::defaults::resolve_solana_rpc_defaults;
+use crate::config::app_config::WmgrConfig;
 use crate::config::clusters::get_cluster_config;
 use crate::config::raydium::{SOL_USDC_POOL_ID, USDC_MINT};
 
-pub async fn handle_price(args: PriceArgs) -> Result<()> {
+pub async fn handle_price(args: PriceArgs, _cfg: &WmgrConfig) -> Result<()> {
     let _ = args.key;
-    let commitment = commitment_from_arg(args.rpc.commitment);
-    let cluster = get_cluster_config(&args.rpc.cluster, args.rpc.rpc.as_deref())?;
+    let rpc = resolve_solana_rpc_defaults(args.rpc, _cfg);
+    let commitment = commitment_from_arg(rpc.commitment);
+    let cluster = get_cluster_config(&rpc.cluster, rpc.rpc.as_deref())?;
     println!("Using cluster: {}, RPC: {}", cluster.name, cluster.rpc_url);
 
     let rpc = RpcClient::new_with_commitment(cluster.rpc_url.clone(), commitment);

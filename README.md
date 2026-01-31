@@ -9,6 +9,28 @@ cargo build
 cargo run -- --help
 ```
 
+## Interactive mode + saved defaults
+
+`wmgr` starts an interactive REPL when no command is provided:
+
+```sh
+wmgr
+```
+
+Save default launch mode/flags in `.wmgr` (current working directory):
+
+```sh
+wmgr config set --svpi --svpi-name <name> [--svpi_cmd <path>] [--svpi-file <path>]
+wmgr config set --cluster <solana-cluster> --rpc <solana-url> [--commitment <processed|confirmed|finalized>] [--slippage <percent>]
+wmgr config set --network <evm-network> --rpc <evm-url> [--gas-price <gwei>] [--gas-limit <num>]
+```
+
+Check SHA256 hashes:
+
+```sh
+wmgr self-hash
+```
+
 ## Commands (ordered)
 
 ### 1) Balance

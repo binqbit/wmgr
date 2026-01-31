@@ -11,6 +11,10 @@ use solana_sdk::transaction::Transaction;
 
 use crate::app::cli::{SwapToken, TradeArgs};
 use crate::app::commands::commitment_from_arg;
+use crate::app::defaults::{
+    apply_solana_key_defaults, resolve_slippage, resolve_solana_rpc_defaults,
+};
+use crate::config::app_config::WmgrConfig;
 use crate::config::clusters::get_cluster_config;
 use crate::config::raydium::{SOL_USDC_POOL_ID, USDC_MINT};
 use crate::core::amount::{format_integer_amount, parse_amount_to_u64};
@@ -202,21 +206,31 @@ impl TradeSummary {
     }
 }
 
-pub async fn handle_buy(args: TradeArgs) -> Result<()> {
-    handle_trade(TradeSide::Buy, args).await
+pub async fn handle_buy(args: TradeArgs, cfg: &WmgrConfig) -> Result<()> {
+    handle_trade(TradeSide::Buy, args, cfg).await
 }
 
-pub async fn handle_sell(args: TradeArgs) -> Result<()> {
-    handle_trade(TradeSide::Sell, args).await
+pub async fn handle_sell(args: TradeArgs, cfg: &WmgrConfig) -> Result<()> {
+    handle_trade(TradeSide::Sell, args, cfg).await
 }
 
-async fn handle_trade(side: TradeSide, args: TradeArgs) -> Result<()> {
-    let keypair = resolve_solana_keypair(&args.key)?;
+async fn handle_trade(side: TradeSide, args: TradeArgs, cfg: &WmgrConfig) -> Result<()> {
+    let TradeArgs {
+        amount,
+        token,
+        slippage,
+        key,
+        rpc,
+    } = args;
+
+    let key = apply_solana_key_defaults(key, cfg);
+    let keypair = resolve_solana_keypair(&key)?;
     let keypair_copy = solana_keypair::Keypair::try_from(keypair.to_bytes().as_slice())
         .map_err(|err| anyhow!("Failed to clone keypair: {err}"))?;
 
-    let commitment = commitment_from_arg(args.rpc.commitment);
-    let cluster = get_cluster_config(&args.rpc.cluster, args.rpc.rpc.as_deref())?;
+    let rpc = resolve_solana_rpc_defaults(rpc, cfg);
+    let commitment = commitment_from_arg(rpc.commitment);
+    let cluster = get_cluster_config(&rpc.cluster, rpc.rpc.as_deref())?;
     println!("Using cluster: {}, RPC: {}", cluster.name, cluster.rpc_url);
 
     let rpc_for_client = RpcClient::new_with_commitment(cluster.rpc_url.clone(), commitment);
@@ -244,14 +258,14 @@ async fn handle_trade(side: TradeSide, args: TradeArgs) -> Result<()> {
     let quote_decimals = u8::try_from(pool.mint_b.decimals)
         .map_err(|_| anyhow!("Quote mint decimals out of range"))?;
 
-    let slippage_percent = args.slippage;
+    let slippage_percent = resolve_slippage(slippage, cfg);
     if !(0.0..=100.0).contains(&slippage_percent) {
         return Err(anyhow!("Slippage percent must be between 0 and 100"));
     }
 
     let (input_token, output_token) = match side {
-        TradeSide::Buy => (args.token.other(), args.token),
-        TradeSide::Sell => (args.token, args.token.other()),
+        TradeSide::Buy => (token.other(), token),
+        TradeSide::Sell => (token, token.other()),
     };
 
     let input_mint = mint_for_token(input_token);
@@ -289,7 +303,7 @@ async fn handle_trade(side: TradeSide, args: TradeArgs) -> Result<()> {
                 rpc_pool.base_reserve
             };
 
-            let amount_in = parse_amount_to_u64(&args.amount, input_decimals)?;
+            let amount_in = parse_amount_to_u64(&amount, input_decimals)?;
             let quote = compute_swap_quote(
                 amount_in,
                 reserve_in,
@@ -341,7 +355,7 @@ async fn handle_trade(side: TradeSide, args: TradeArgs) -> Result<()> {
                 rpc_pool.quote_reserve
             };
 
-            let amount_out = parse_amount_to_u64(&args.amount, output_decimals)?;
+            let amount_out = parse_amount_to_u64(&amount, output_decimals)?;
             let quote = compute_swap_quote_out(
                 amount_out,
                 reserve_in,
