@@ -78,14 +78,14 @@ Solana:
 
 - `--keyfile <PATH>` Solana CLI JSON keypair (64-byte array)
 - `--seed <MNEMONIC>` BIP39 seed phrase
-- `--svpi` Fetch mnemonic from SVPI
+- `--svpi` Fetch mnemonic or hex private key from SVPI
 
 EVM:
 
 - `--privkey <HEX>` Private key (with or without 0x)
 - `--privkey-file <PATH>` File containing the private key
 - `--seed <MNEMONIC>` BIP39 seed phrase
-- `--svpi` Fetch mnemonic from SVPI
+- `--svpi` Fetch mnemonic or hex private key from SVPI
 
 ## SVPI (JSON mode)
 
@@ -94,7 +94,8 @@ svpi --mode=json get <name> --password=<password> [--file=<path>]
 ```
 
 Use `--svpi_cmd <path>` to point to a custom binary. The CLI expects the
-`svpi.response.v1` envelope and reads `result.data` as the mnemonic.
+`svpi.response.v1` envelope and reads `result.data` as the mnemonic or hex
+private key (32 bytes for EVM, 32 or 64 bytes for Solana).
 
 ## Notes
 

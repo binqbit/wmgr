@@ -4,7 +4,7 @@ use std::str::FromStr;
 use anyhow::{anyhow, Context, Result};
 use ethers::signers::{coins_bip39::English, LocalWallet, MnemonicBuilder};
 
-use super::svpi::get_mnemonic_from_svpi;
+use super::svpi::get_data_from_svpi;
 use crate::app::cli::EvmKeyOptions;
 use crate::utils::prompt::{prompt, prompt_hidden};
 
@@ -66,13 +66,18 @@ pub fn resolve_evm_wallet(opts: &EvmKeyOptions) -> Result<LocalWallet> {
             Some(v) => v.clone(),
             None => prompt_hidden("SVPI password:")?,
         };
-        let mnemonic = get_mnemonic_from_svpi(
+        let data = get_data_from_svpi(
             &name,
             &password,
             opts.svpi_file.as_deref(),
             opts.svpi_cmd.as_deref(),
         )?;
-        return wallet_from_mnemonic(&mnemonic, derivation_path, &seed_passphrase);
+        if looks_like_hex_privkey(&data) {
+            let normalized = normalize_privkey(&data)?;
+            return LocalWallet::from_str(&normalized)
+                .map_err(|err| anyhow!("Invalid private key: {err}"));
+        }
+        return wallet_from_mnemonic(&data, derivation_path, &seed_passphrase);
     }
 
     let mnemonic = opts.seed.as_ref().unwrap();
@@ -106,4 +111,13 @@ fn normalize_privkey(hex: &str) -> Result<String> {
         ));
     }
     Ok(format!("0x{}", without_prefix.to_lowercase()))
+}
+
+fn looks_like_hex_privkey(value: &str) -> bool {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return false;
+    }
+    let without_prefix = trimmed.strip_prefix("0x").unwrap_or(trimmed);
+    without_prefix.len() == 64 && without_prefix.chars().all(|c| c.is_ascii_hexdigit())
 }

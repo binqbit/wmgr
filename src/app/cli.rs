@@ -72,7 +72,7 @@ pub struct BalanceKeyOptions {
     pub mnemo: String,
     #[arg(long, value_name = "PASS", help = "BIP39 passphrase")]
     pub seed_passphrase: Option<String>,
-    #[arg(long, help = "Use SVPI to fetch mnemonic")]
+    #[arg(long, help = "Use SVPI to fetch mnemonic or hex private key")]
     pub svpi: bool,
     #[arg(long, value_name = "NAME", help = "SVPI wallet name")]
     pub svpi_name: Option<String>,
@@ -241,7 +241,7 @@ pub struct SolanaKeyOptions {
     pub mnemo: String,
     #[arg(long, value_name = "PASS", help = "BIP39 passphrase")]
     pub seed_passphrase: Option<String>,
-    #[arg(long, help = "Use SVPI to fetch mnemonic")]
+    #[arg(long, help = "Use SVPI to fetch mnemonic or hex private key")]
     pub svpi: bool,
     #[arg(long, value_name = "NAME", help = "SVPI wallet name")]
     pub svpi_name: Option<String>,
@@ -278,7 +278,7 @@ pub struct EvmKeyOptions {
     pub path: Option<String>,
     #[arg(long, value_name = "PASS", help = "BIP39 passphrase")]
     pub seed_passphrase: Option<String>,
-    #[arg(long, help = "Use SVPI to fetch mnemonic")]
+    #[arg(long, help = "Use SVPI to fetch mnemonic or hex private key")]
     pub svpi: bool,
     #[arg(long, value_name = "NAME", help = "SVPI wallet name")]
     pub svpi_name: Option<String>,
