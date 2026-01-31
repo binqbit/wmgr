@@ -30,6 +30,7 @@ pub enum Command {
     /// Manage saved defaults (.wmgr)
     Config(ConfigArgs),
     /// Print SHA256 hash of this executable (and SVPI when enabled)
+    #[command(visible_alias = "hash")]
     SelfHash,
 }
 
