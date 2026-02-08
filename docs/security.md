@@ -42,7 +42,7 @@ and submit signed transactions.
 ### SVPI integration
 
 When `--svpi` is used, `wmgr` executes SVPI in JSON mode (it expects the `svpi.response.v1`
-envelope and reads `result.data` as the mnemonic/private key).
+envelope and reads `result.data_type` + `result.data`).
 
 If `--svpi-pass` is not provided, `wmgr` prompts for the SVPI password with hidden input (no
 terminal echo).
@@ -61,9 +61,8 @@ Operational recommendations:
 
 #### Error paths and sensitive output
 
-`wmgr` does not intentionally print secrets. However, if SVPI returns malformed JSON, the raw SVPI
-output may be included in an error message. If that output contains sensitive data, it could be
-displayed in the terminal.
+`wmgr` does not intentionally print secrets. SVPI output is parsed without echoing raw
+stdout/stderr in errors (to reduce the risk of leaking secrets if SVPI output is unexpected).
 
 ## Configuration file (`.wmgr`)
 

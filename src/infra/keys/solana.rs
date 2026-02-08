@@ -53,12 +53,13 @@ pub fn resolve_solana_keypair(opts: &SolanaKeyOptions) -> Result<Keypair> {
             Some(v) => v.clone(),
             None => prompt_hidden("SVPI password:")?,
         };
-        let data = get_data_from_svpi(
+        let resp = get_data_from_svpi(
             &name,
             &password,
             opts.svpi_file.as_deref(),
             opts.svpi_cmd.as_deref(),
         )?;
+        let data = resp.data;
         if looks_like_hex_privkey(&data) {
             return keypair_from_hex_privkey(&data);
         }

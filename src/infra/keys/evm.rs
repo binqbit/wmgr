@@ -66,12 +66,13 @@ pub fn resolve_evm_wallet(opts: &EvmKeyOptions) -> Result<LocalWallet> {
             Some(v) => v.clone(),
             None => prompt_hidden("SVPI password:")?,
         };
-        let data = get_data_from_svpi(
+        let resp = get_data_from_svpi(
             &name,
             &password,
             opts.svpi_file.as_deref(),
             opts.svpi_cmd.as_deref(),
         )?;
+        let data = resp.data;
         if looks_like_hex_privkey(&data) {
             let normalized = normalize_privkey(&data)?;
             return LocalWallet::from_str(&normalized)
