@@ -127,6 +127,17 @@ pub fn build_swap_instructions(
 
     instructions.push(swap_ix);
 
+    if *output_mint == spl_token::native_mint::id() {
+        // For swaps ending in wrapped SOL, close ATA in the same tx to unwrap to native SOL.
+        instructions.push(spl_token::instruction::close_account(
+            &spl_token::id(),
+            &destination_ata,
+            &owner,
+            owner,
+            &[],
+        )?);
+    }
+
     Ok(instructions)
 }
 

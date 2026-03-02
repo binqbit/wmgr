@@ -163,7 +163,9 @@ mod tests {
     #[test]
     fn extract_from_json_parses_strict_json() {
         let raw = "{\"schema\":\"svpi.response.v1\",\"ok\":true,\"result\":{\"data\":\"alpha\",\"data_type\":\"plain\"}}";
-        let typed = try_extract_svpi_data_from_json(raw).expect("parse").expect("typed");
+        let typed = try_extract_svpi_data_from_json(raw)
+            .expect("parse")
+            .expect("typed");
         assert_eq!(typed.data_type, "plain");
         assert_eq!(typed.data, "alpha");
     }
