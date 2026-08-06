@@ -250,7 +250,10 @@ impl BalanceKeyOptions {
 }
 
 #[derive(Args, Debug)]
+#[command(subcommand_value_name = "TOKEN", subcommand_help_heading = "Tokens")]
 pub struct SendCommand {
+    #[arg(value_name = "AMOUNT", help = "Amount of token to send")]
+    pub amount: String,
     #[command(subcommand)]
     pub kind: SendKind,
 }
@@ -271,8 +274,6 @@ pub enum SendKind {
 pub struct SendSolArgs {
     #[arg(value_name = "TO", help = "Recipient Solana address (base58)")]
     pub to: String,
-    #[arg(value_name = "AMOUNT", help = "Amount of SOL to send")]
-    pub amount: String,
     #[command(flatten)]
     pub key: SolanaKeyOptions,
     #[command(flatten)]
@@ -283,8 +284,6 @@ pub struct SendSolArgs {
 pub struct SendUsdcArgs {
     #[arg(value_name = "TO", help = "Recipient Solana address (base58)")]
     pub to: String,
-    #[arg(value_name = "AMOUNT", help = "Amount of USDC to send")]
-    pub amount: String,
     #[command(flatten)]
     pub key: SolanaKeyOptions,
     #[command(flatten)]
@@ -295,8 +294,6 @@ pub struct SendUsdcArgs {
 pub struct SendEthArgs {
     #[arg(value_name = "TO", help = "Recipient EVM address")]
     pub to: String,
-    #[arg(value_name = "AMOUNT", help = "Amount of native token to send")]
-    pub amount: String,
     #[command(flatten)]
     pub key: EvmKeyOptions,
     #[command(flatten)]
@@ -309,8 +306,6 @@ pub struct SendErc20Args {
     pub token: String,
     #[arg(value_name = "TO", help = "Recipient EVM address")]
     pub to: String,
-    #[arg(value_name = "AMOUNT", help = "Token amount to send")]
-    pub amount: String,
     #[arg(long, value_name = "DECIMALS", help = "Override token decimals")]
     pub decimals: Option<u8>,
     #[command(flatten)]
@@ -530,5 +525,127 @@ impl EvmNetworkArg {
             EvmNetworkArg::Optimism => "optimism",
             EvmNetworkArg::Arbitrum => "arbitrum",
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use clap::Parser;
+
+    use super::{Cli, Command, EvmNetworkArg, SendKind, SwapToken};
+
+    #[test]
+    fn parses_amount_first_buy_and_sell_commands() {
+        let buy = Cli::try_parse_from(["wmgr", "buy", "1", "usdc"]).unwrap();
+        match buy.command {
+            Some(Command::Buy(args)) => {
+                assert_eq!(args.amount, "1");
+                assert!(matches!(args.token, SwapToken::Usdc));
+            }
+            command => panic!("expected buy command, got {command:?}"),
+        }
+
+        let sell = Cli::try_parse_from(["wmgr", "sell", "1", "sol"]).unwrap();
+        match sell.command {
+            Some(Command::Sell(args)) => {
+                assert_eq!(args.amount, "1");
+                assert!(matches!(args.token, SwapToken::Sol));
+            }
+            command => panic!("expected sell command, got {command:?}"),
+        }
+    }
+
+    #[test]
+    fn parses_amount_first_send_command() {
+        let cli = Cli::try_parse_from([
+            "wmgr",
+            "send",
+            "1",
+            "usdc",
+            "recipient",
+            "--cluster",
+            "devnet",
+        ])
+        .unwrap();
+
+        match cli.command {
+            Some(Command::Send(command)) => {
+                assert_eq!(command.amount, "1");
+                match command.kind {
+                    SendKind::Usdc(args) => {
+                        assert_eq!(args.to, "recipient");
+                        assert_eq!(args.rpc.cluster.as_deref(), Some("devnet"));
+                    }
+                    kind => panic!("expected USDC send command, got {kind:?}"),
+                }
+            }
+            command => panic!("expected send command, got {command:?}"),
+        }
+
+        let sol = Cli::try_parse_from(["wmgr", "send", "1", "sol", "recipient"]).unwrap();
+        match sol.command {
+            Some(Command::Send(command)) => {
+                assert_eq!(command.amount, "1");
+                match command.kind {
+                    SendKind::Sol(args) => assert_eq!(args.to, "recipient"),
+                    kind => panic!("expected SOL send command, got {kind:?}"),
+                }
+            }
+            command => panic!("expected send command, got {command:?}"),
+        }
+    }
+
+    #[test]
+    fn preserves_amount_first_evm_send_commands() {
+        let eth = Cli::try_parse_from([
+            "wmgr",
+            "send",
+            "2",
+            "eth",
+            "recipient",
+            "--network",
+            "sepolia",
+        ])
+        .unwrap();
+        match eth.command {
+            Some(Command::Send(command)) => match command.kind {
+                SendKind::Eth(args) => {
+                    assert_eq!(command.amount, "2");
+                    assert_eq!(args.to, "recipient");
+                    assert!(matches!(args.tx.network, Some(EvmNetworkArg::Sepolia)));
+                }
+                kind => panic!("expected ETH send command, got {kind:?}"),
+            },
+            command => panic!("expected send command, got {command:?}"),
+        }
+
+        let erc20 = Cli::try_parse_from([
+            "wmgr",
+            "send",
+            "3",
+            "erc20",
+            "token",
+            "recipient",
+            "--decimals",
+            "6",
+        ])
+        .unwrap();
+        match erc20.command {
+            Some(Command::Send(command)) => match command.kind {
+                SendKind::Erc20(args) => {
+                    assert_eq!(command.amount, "3");
+                    assert_eq!(args.token, "token");
+                    assert_eq!(args.to, "recipient");
+                    assert_eq!(args.decimals, Some(6));
+                }
+                kind => panic!("expected ERC-20 send command, got {kind:?}"),
+            },
+            command => panic!("expected send command, got {command:?}"),
+        }
+    }
+
+    #[test]
+    fn rejects_previous_send_argument_order() {
+        assert!(Cli::try_parse_from(["wmgr", "send", "usdc", "recipient", "1"]).is_err());
     }
 }

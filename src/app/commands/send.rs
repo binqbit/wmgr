@@ -16,21 +16,17 @@ use crate::infra::keys::solana::resolve_solana_keypair;
 use crate::infra::solana::{create_rpc_client, transfer_sol, transfer_spl_token};
 
 pub async fn handle_send(cmd: SendCommand, cfg: &WmgrConfig) -> Result<()> {
-    match cmd.kind {
-        SendKind::Sol(args) => send_sol(args, cfg).await,
-        SendKind::Usdc(args) => send_usdc(args, cfg).await,
-        SendKind::Eth(args) => send_eth(args, cfg).await,
-        SendKind::Erc20(args) => send_erc20(args, cfg).await,
+    let SendCommand { amount, kind } = cmd;
+    match kind {
+        SendKind::Sol(args) => send_sol(args, amount, cfg).await,
+        SendKind::Usdc(args) => send_usdc(args, amount, cfg).await,
+        SendKind::Eth(args) => send_eth(args, amount, cfg).await,
+        SendKind::Erc20(args) => send_erc20(args, amount, cfg).await,
     }
 }
 
-async fn send_sol(args: SendSolArgs, cfg: &WmgrConfig) -> Result<()> {
-    let SendSolArgs {
-        to,
-        amount,
-        key,
-        rpc,
-    } = args;
+async fn send_sol(args: SendSolArgs, amount: String, cfg: &WmgrConfig) -> Result<()> {
+    let SendSolArgs { to, key, rpc } = args;
     let key = apply_solana_key_defaults(key, cfg);
     let rpc = resolve_solana_rpc_defaults(rpc, cfg);
     let keypair = resolve_solana_keypair(&key)?;
@@ -44,13 +40,8 @@ async fn send_sol(args: SendSolArgs, cfg: &WmgrConfig) -> Result<()> {
     Ok(())
 }
 
-async fn send_usdc(args: SendUsdcArgs, cfg: &WmgrConfig) -> Result<()> {
-    let SendUsdcArgs {
-        to,
-        amount,
-        key,
-        rpc,
-    } = args;
+async fn send_usdc(args: SendUsdcArgs, amount: String, cfg: &WmgrConfig) -> Result<()> {
+    let SendUsdcArgs { to, key, rpc } = args;
     let key = apply_solana_key_defaults(key, cfg);
     let rpc = resolve_solana_rpc_defaults(rpc, cfg);
     let keypair = resolve_solana_keypair(&key)?;
@@ -65,13 +56,8 @@ async fn send_usdc(args: SendUsdcArgs, cfg: &WmgrConfig) -> Result<()> {
     Ok(())
 }
 
-async fn send_eth(args: SendEthArgs, cfg: &WmgrConfig) -> Result<()> {
-    let SendEthArgs {
-        to,
-        amount,
-        key,
-        tx,
-    } = args;
+async fn send_eth(args: SendEthArgs, amount: String, cfg: &WmgrConfig) -> Result<()> {
+    let SendEthArgs { to, key, tx } = args;
     let key = apply_evm_key_defaults(key, cfg);
     let tx = resolve_evm_tx_defaults(tx, cfg);
     let wallet = resolve_evm_wallet(&key)?;
@@ -94,11 +80,10 @@ async fn send_eth(args: SendEthArgs, cfg: &WmgrConfig) -> Result<()> {
     Ok(())
 }
 
-async fn send_erc20(args: SendErc20Args, cfg: &WmgrConfig) -> Result<()> {
+async fn send_erc20(args: SendErc20Args, amount: String, cfg: &WmgrConfig) -> Result<()> {
     let SendErc20Args {
         token,
         to,
-        amount,
         decimals,
         key,
         tx,

@@ -88,18 +88,24 @@ address/public key.
 Solana:
 
 ```sh
-wmgr send sol  <TO> <AMOUNT> [--keyfile <PATH> | --seed <MNEMONIC> | --svpi] \
+wmgr send <AMOUNT> sol  <TO> [--keyfile <PATH> | --seed <MNEMONIC> | --svpi] \
   [--cluster <name>] [--rpc <url>] [--commitment <processed|confirmed|finalized>]
-wmgr send usdc <TO> <AMOUNT> [--keyfile <PATH> | --seed <MNEMONIC> | --svpi] \
+wmgr send <AMOUNT> usdc <TO> [--keyfile <PATH> | --seed <MNEMONIC> | --svpi] \
   [--cluster <name>] [--rpc <url>] [--commitment <processed|confirmed|finalized>]
+```
+
+For example, send 1 USDC:
+
+```sh
+wmgr send 1 usdc <TO>
 ```
 
 EVM:
 
 ```sh
-wmgr send eth   <TO> <AMOUNT> [--privkey <HEX> | --privkey-file <PATH> | --seed <MNEMONIC> | --svpi] \
+wmgr send <AMOUNT> eth   <TO> [--privkey <HEX> | --privkey-file <PATH> | --seed <MNEMONIC> | --svpi] \
   [--network <name>] [--rpc <url>] [--gas-price <gwei>] [--gas-limit <num>]
-wmgr send erc20 <TOKEN> <TO> <AMOUNT> [--decimals <num>] \
+wmgr send <AMOUNT> erc20 <TOKEN> <TO> [--decimals <num>] \
   [--privkey <HEX> | --privkey-file <PATH> | --seed <MNEMONIC> | --svpi] \
   [--network <name>] [--rpc <url>] [--gas-price <gwei>] [--gas-limit <num>]
 ```
@@ -125,7 +131,16 @@ wmgr sell <AMOUNT> <sol|usdc> [--slippage <percent>] \
   [--cluster <name>] [--rpc <url>] [--commitment <processed|confirmed|finalized>]
 ```
 
+Examples:
+
+```sh
+wmgr buy 1 usdc
+wmgr sell 1 sol
+```
+
 Notes:
 
 - Trading is currently integrated for the Raydium SOL/USDC AMM pool.
+- `buy` treats the amount as the exact output to receive; `sell` treats it as the exact input to
+  spend.
 - `--slippage` is a percent value (default `0.1` = 0.1%).
