@@ -3,6 +3,7 @@ use std::{
     io::{self, Read, Write},
     path::Path,
     sync::Arc,
+    time::Duration,
 };
 
 use anyhow::{anyhow, bail, Context, Result};
@@ -35,6 +36,7 @@ pub struct ProgramDeployment<'a> {
     pub authority: &'a Keypair,
     pub buffer: Option<Pubkey>,
     pub compute_unit_price: Option<u64>,
+    pub timeout: Duration,
 }
 
 pub struct ProgramInfo {
@@ -50,6 +52,58 @@ pub async fn deploy(
     rpc_url: &str,
     commitment: CommitmentConfig,
     options: ProgramDeployment<'_>,
+) -> Result<String> {
+    // Agave spawns upload polling tasks that outlive a cancelled request.
+    // An owned runtime stops those tasks on success, error, or timeout,
+    // including when the caller returns to the REPL.
+    tokio::task::block_in_place(|| {
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()?;
+        let result = runtime.block_on(async {
+            let new_buffer = if options.buffer.is_none() {
+                Some(random_keypair()?)
+            } else {
+                None
+            };
+            let buffer_address = match (&new_buffer, options.buffer) {
+                (Some(keypair), _) => keypair.pubkey(),
+                (_, Some(address)) => address,
+                _ => unreachable!(),
+            };
+            // The authority can resume or reclaim an initialized buffer
+            // without the temporary account keypair.
+            writeln!(io::stdout(), "Buffer: {buffer_address}")?;
+            let resumed_buffer = NullSigner::new(&buffer_address);
+            let buffer_signer: &dyn Signer = match new_buffer.as_ref() {
+                Some(keypair) => keypair,
+                None => &resumed_buffer,
+            };
+            tokio::time::timeout(
+                options.timeout,
+                deploy_inner(rpc_url, commitment, &options, buffer_signer),
+            )
+            .await
+            .unwrap_or_else(|_| {
+                Err(anyhow!(
+                    "Deployment timed out (limit: {} seconds); confirmation may still be pending. \
+                     Check program show before retrying. Buffer {buffer_address} is recoverable \
+                     with --buffer or program close-buffer if initialized",
+                    options.timeout.as_secs()
+                ))
+            })
+        });
+        // Do not let a blocking OS DNS lookup delay returning indefinitely.
+        runtime.shutdown_timeout(Duration::from_millis(100));
+        result
+    })
+}
+
+async fn deploy_inner(
+    rpc_url: &str,
+    commitment: CommitmentConfig,
+    options: &ProgramDeployment<'_>,
+    buffer_signer: &dyn Signer,
 ) -> Result<String> {
     let path = fs::canonicalize(options.file).context("Cannot open the program file")?;
     let location = path
@@ -71,19 +125,7 @@ pub async fn deploy(
         }
     }
 
-    let new_buffer = if options.buffer.is_none() {
-        Some(random_keypair()?)
-    } else {
-        None
-    };
-    let buffer_address = match (&new_buffer, options.buffer) {
-        (Some(keypair), _) => keypair.pubkey(),
-        (_, Some(address)) => address,
-        _ => unreachable!(),
-    };
-    // The authority can resume or reclaim an initialized buffer
-    // without the temporary account keypair.
-    writeln!(io::stdout(), "Buffer: {buffer_address}")?;
+    let buffer_address = buffer_signer.pubkey();
 
     let rpc = Arc::new(RpcClient::new_with_commitment(
         rpc_url.to_owned(),
@@ -133,11 +175,6 @@ pub async fn deploy(
         }
     }
 
-    let resumed_buffer = NullSigner::new(&buffer_address);
-    let buffer_signer: &dyn Signer = match new_buffer.as_ref() {
-        Some(keypair) => keypair,
-        None => &resumed_buffer,
-    };
     let mut signers: Vec<&dyn Signer> = vec![options.payer, options.authority, buffer_signer];
     let program_signer_index = options.program_signer.map(|signer| {
         signers.push(signer);

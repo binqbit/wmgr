@@ -107,6 +107,9 @@ pub struct ProgramDeployArgs {
     /// Priority fee in micro-lamports per compute unit
     #[arg(long, value_name = "PRICE")]
     pub compute_unit_price: Option<u64>,
+    /// Maximum deployment time in seconds
+    #[arg(long, default_value = "1200", value_name = "SECONDS")]
+    pub timeout: std::num::NonZeroU64,
 }
 
 #[derive(Args, Debug)]

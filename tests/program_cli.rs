@@ -12,7 +12,7 @@ use std::{
         Arc,
     },
     thread,
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use serde_json::{json, Value};
@@ -254,6 +254,36 @@ fn show_resolves_a_public_program_record_without_requesting_signers() {
     assert!(stdout.contains(&program.pubkey().to_string()));
     assert!(stdout.contains(&authority.pubkey().to_string()));
     assert_eq!(workspace.gets(), "program\n");
+}
+
+#[test]
+fn deployment_timeout_stops_waiting_for_an_unresponsive_rpc() {
+    let workspace = Workspace::new();
+    workspace.signer("program", 7);
+    workspace.signer("payer", 8);
+    // The socket accepts connections at the OS level but never replies.
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let url = format!("http://{}", listener.local_addr().unwrap());
+    let started = Instant::now();
+    let output = workspace.run(
+        &[
+            "deploy",
+            "program.so",
+            "--program",
+            "program",
+            "--payer",
+            "payer",
+            "--authority",
+            "payer",
+            "--timeout",
+            "1",
+        ],
+        "",
+        &url,
+    );
+    fails_with(&output, "Deployment timed out (limit: 1 seconds)");
+    assert!(started.elapsed() < Duration::from_secs(5));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("program show"));
 }
 
 #[test]

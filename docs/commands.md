@@ -55,8 +55,10 @@ Program commands always use SVPI. RPC and SVPI connection defaults come from `.w
 `--cluster`, `--rpc`, `--svpi-file`, and `--svpi-cmd` override them. Use
 `--compute-unit-price` to set a deployment priority fee in micro-lamports per compute unit.
 In a terminal, Solana's progress indicator shows upload and transaction confirmation progress.
+Deployment times out after 20 minutes; `--timeout SECONDS` changes the limit.
 
-The deployment buffer address is printed before upload. After failure, retry with
+The deployment buffer address is printed before upload. After a timeout, check `program show`
+to see whether deployment completed. After failure, retry with
 `--buffer ADDRESS`, or reclaim its SOL with
 `wmgr program close-buffer --buffer ADDRESS --payer deployer --authority admin`.
 The refund goes to the payer. If a retry requires more program space, omit `--buffer`

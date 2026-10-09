@@ -3,6 +3,7 @@ use std::{
     io::{self, Read, Write},
     path::{Path, PathBuf},
     str::FromStr,
+    time::Duration,
 };
 
 use anyhow::{bail, Context, Result};
@@ -135,6 +136,7 @@ async fn deploy(args: ProgramDeployArgs, cfg: &WmgrConfig, upgrade: bool) -> Res
             authority: wallets.signer(&authority)?,
             buffer,
             compute_unit_price: args.compute_unit_price,
+            timeout: Duration::from_secs(args.timeout.get()),
         },
     )
     .await?;
