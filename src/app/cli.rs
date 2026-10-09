@@ -52,6 +52,10 @@ pub enum ProgramCommand {
     Upgrade(ProgramDeployArgs),
     /// Show a deployed program and its upgrade authority
     Show(ProgramTargetOptions),
+    /// Transfer upgrade authority to another wallet in SVPI
+    SetAuthority(ProgramAuthorityArgs),
+    /// Reclaim a deployment buffer's SOL to the payer wallet
+    CloseBuffer(ProgramCloseBufferArgs),
 }
 
 #[derive(Args, Debug)]
@@ -103,6 +107,30 @@ pub struct ProgramDeployArgs {
     /// Priority fee in micro-lamports per compute unit
     #[arg(long, value_name = "PRICE")]
     pub compute_unit_price: Option<u64>,
+}
+
+#[derive(Args, Debug)]
+pub struct ProgramAuthorityArgs {
+    #[command(flatten)]
+    pub target: ProgramTargetOptions,
+    #[command(flatten)]
+    pub signers: ProgramSignerOptions,
+    /// New upgrade authority wallet in SVPI
+    #[arg(long, value_name = "NAME")]
+    pub new_authority: Option<String>,
+}
+
+#[derive(Args, Debug)]
+pub struct ProgramCloseBufferArgs {
+    /// Deployment buffer address; prompted if omitted
+    #[arg(long, value_name = "ADDRESS")]
+    pub buffer: Option<String>,
+    #[command(flatten)]
+    pub signers: ProgramSignerOptions,
+    #[command(flatten)]
+    pub vault: ProgramSvpiOptions,
+    #[command(flatten)]
+    pub rpc: SolanaRpcOptions,
 }
 
 #[derive(Args, Debug)]

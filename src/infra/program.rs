@@ -174,7 +174,7 @@ pub async fn deploy(
     command_result(process_program_subcommand(rpc, &config, &command).await).map_err(|error| {
         anyhow!(
             "Deployment failed: {error}. Buffer {buffer_address} remains controlled by {} if initialized. \
-             Resume with --buffer {buffer_address}",
+             Resume with --buffer {buffer_address} or reclaim it with program close-buffer",
             options.authority.pubkey()
         )
     })
@@ -187,6 +187,65 @@ pub async fn show(
 ) -> Result<ProgramInfo> {
     let rpc = RpcClient::new_with_commitment(rpc_url.to_owned(), commitment);
     read_program_info(&rpc, commitment, program).await
+}
+
+pub async fn set_authority(
+    rpc_url: &str,
+    commitment: CommitmentConfig,
+    program: Pubkey,
+    payer: &Keypair,
+    authority: &Keypair,
+    new_authority: &Keypair,
+) -> Result<String> {
+    if authority.pubkey() == new_authority.pubkey() {
+        bail!("New upgrade authority is already the current authority");
+    }
+    let rpc = Arc::new(RpcClient::new_with_commitment(
+        rpc_url.to_owned(),
+        commitment,
+    ));
+    let info = read_program_info(&rpc, commitment, program).await?;
+    require_authority(&info, authority)?;
+    let config = cli_config(
+        rpc_url,
+        commitment,
+        rpc.clone(),
+        vec![payer, authority, new_authority],
+    );
+    let command = ProgramCliCommand::SetUpgradeAuthorityChecked {
+        program_pubkey: program,
+        upgrade_authority_index: 1,
+        new_upgrade_authority_index: 2,
+        sign_only: false,
+        dump_transaction_message: false,
+        blockhash_query: Default::default(),
+    };
+    command_result(process_program_subcommand(rpc, &config, &command).await)
+}
+
+pub async fn close_buffer(
+    rpc_url: &str,
+    commitment: CommitmentConfig,
+    buffer: Pubkey,
+    payer: &Keypair,
+    authority: &Keypair,
+) -> Result<String> {
+    let rpc = Arc::new(RpcClient::new_with_commitment(
+        rpc_url.to_owned(),
+        commitment,
+    ));
+    check_buffer(&rpc, commitment, buffer, authority.pubkey(), 0).await?;
+    let config = cli_config(rpc_url, commitment, rpc.clone(), vec![payer, authority]);
+    let command = ProgramCliCommand::Close {
+        account_pubkey: Some(buffer),
+        recipient_pubkey: payer.pubkey(),
+        authority_index: 1,
+        use_lamports_unit: true,
+        // Agave's guard still refuses program closure if the account changes
+        // after our explicit Buffer-state check.
+        bypass_warning: false,
+    };
+    command_result(process_program_subcommand(rpc, &config, &command).await)
 }
 
 fn cli_config<'a>(

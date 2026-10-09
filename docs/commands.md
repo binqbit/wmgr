@@ -40,6 +40,7 @@ wmgr program deploy
 wmgr program deploy target/deploy/app.so --program app --payer deployer --authority admin
 wmgr program upgrade target/deploy/app.so --program app --payer deployer --authority admin
 wmgr program show --program app
+wmgr program set-authority --program app --payer deployer --authority admin --new-authority next-admin
 ```
 
 Missing values are prompted: program file, program wallet, payer, then authority. Wallet names
@@ -47,7 +48,8 @@ refer to SVPI records. The payer prompt uses the configured wallet as its defaul
 defaults to the payer. Passwords are prompted once per distinct record, without echo.
 
 Deploy requires the program's private key; upgrade and show also accept a public-only record.
-Upgrade checks the existing authority and extends program storage when needed. Keys stay in memory.
+Upgrade checks the existing authority and extends program storage when needed. Authority
+transfer requires both the current and new authority to sign. Keys stay in memory.
 
 Program commands always use SVPI. RPC and SVPI connection defaults come from `.wmgr`;
 `--cluster`, `--rpc`, `--svpi-file`, and `--svpi-cmd` override them. Use
@@ -55,8 +57,10 @@ Program commands always use SVPI. RPC and SVPI connection defaults come from `.w
 In a terminal, Solana's progress indicator shows upload and transaction confirmation progress.
 
 The deployment buffer address is printed before upload. After failure, retry with
-`--buffer ADDRESS`. If a retry requires more program space, omit `--buffer`.
-Other options: `wmgr program <command> --help`.
+`--buffer ADDRESS`, or reclaim its SOL with
+`wmgr program close-buffer --buffer ADDRESS --payer deployer --authority admin`.
+The refund goes to the payer. If a retry requires more program space, omit `--buffer`
+and reclaim the old buffer separately. Other options: `wmgr program <command> --help`.
 
 ## Interactive mode (REPL)
 

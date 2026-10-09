@@ -44,6 +44,59 @@ pub async fn handle_program(args: ProgramArgs, cfg: &WmgrConfig) -> Result<()> {
             writeln!(output, "Program data balance: {} lamports", info.lamports)?;
             Ok(())
         }
+        ProgramCommand::SetAuthority(args) => {
+            let (url, commitment) = connection(args.target.rpc, cfg)?;
+            let name = select_name(args.target.program, "Program wallet in SVPI", None)?;
+            let (payer, authority) = select_signers(args.signers, cfg)?;
+            let new_authority =
+                select_name(args.new_authority, "New authority wallet in SVPI", None)?;
+            let mut wallets = wallets(&args.target.vault, cfg);
+            for name in [&name, &payer, &authority, &new_authority] {
+                wallets.load(name)?;
+            }
+            print_roles(&wallets, &name, &payer, &authority)?;
+            writeln!(
+                io::stdout(),
+                "New authority: {new_authority} ({})",
+                wallets.address(&new_authority)?
+            )?;
+            let result = program::set_authority(
+                &url,
+                commitment,
+                wallets.address(&name)?,
+                wallets.signer(&payer)?,
+                wallets.signer(&authority)?,
+                wallets.signer(&new_authority)?,
+            )
+            .await?;
+            writeln!(io::stdout(), "{result}")?;
+            Ok(())
+        }
+        ProgramCommand::CloseBuffer(args) => {
+            let (url, commitment) = connection(args.rpc, cfg)?;
+            let buffer = select_name(args.buffer, "Deployment buffer address", None)?;
+            let buffer = parse_address(&buffer)?;
+            let (payer, authority) = select_signers(args.signers, cfg)?;
+            let mut wallets = wallets(&args.vault, cfg);
+            wallets.load(&payer)?;
+            wallets.load(&authority)?;
+            writeln!(io::stdout(), "Buffer: {buffer}")?;
+            writeln!(
+                io::stdout(),
+                "Refund recipient: {payer} ({})",
+                wallets.address(&payer)?
+            )?;
+            let result = program::close_buffer(
+                &url,
+                commitment,
+                buffer,
+                wallets.signer(&payer)?,
+                wallets.signer(&authority)?,
+            )
+            .await?;
+            writeln!(io::stdout(), "{result}")?;
+            Ok(())
+        }
     }
 }
 
