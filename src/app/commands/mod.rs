@@ -13,6 +13,7 @@ pub mod balance;
 pub mod config_cmd;
 pub mod hash;
 pub mod price;
+pub mod program;
 pub mod send;
 pub mod swap;
 pub mod wallet;
@@ -29,6 +30,7 @@ pub async fn run(cli: Cli) -> Result<()> {
 pub async fn run_command(cmd: Command, cfg: &mut WmgrConfig) -> Result<()> {
     match cmd {
         Command::Wallet(args) => wallet::handle_wallet(args, cfg),
+        Command::Program(args) => program::handle_program(args, cfg).await,
         Command::Balance(args) => balance::handle_balance(args, cfg).await,
         Command::Send(cmd) => send::handle_send(cmd, cfg).await,
         Command::Price(args) => price::handle_price(args, cfg).await,

@@ -18,6 +18,7 @@ This document is a high-level overview of how pieces fit together.
   CPU and GPU execution share validation and result checks.
 - **Network clients:**
   - **Solana:** `solana-client` RPC for balance queries and transactions.
+    Program deployment uses the official Solana deployment engine with signers resolved in memory.
   - **EVM:** `ethers` provider for balance queries and transactions.
   - **Raydium:** `raydium-amm-swap` for SOL/USDC quotes and swap instruction building.
 

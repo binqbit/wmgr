@@ -10,6 +10,7 @@
 - generate Solana keypairs or BIP39 recovery phrases offline
 - find Solana addresses with a chosen prefix and/or suffix using GPU or CPU
 - import and export Solana wallets through SVPI
+- deploy and upgrade Solana programs with signers from SVPI
 - optional interactive REPL + saved defaults (`.wmgr`)
 
 For key management, `wmgr` can integrate with **SVPI** to fetch mnemonics/private keys from an

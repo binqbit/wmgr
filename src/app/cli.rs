@@ -17,6 +17,8 @@ pub struct Cli {
 pub enum Command {
     /// Generate, import, export, and manage Solana wallets
     Wallet(WalletArgs),
+    /// Deploy and manage Solana programs using wallets from SVPI
+    Program(ProgramArgs),
     /// Get SOL and USDC balances for an address or resolved wallet
     Balance(BalanceArgs),
     /// Send tokens on Solana or EVM
@@ -34,6 +36,73 @@ pub enum Command {
     /// Print SHA256 hash of this executable (and SVPI when enabled)
     #[command(visible_alias = "hash")]
     SelfHash,
+}
+
+#[derive(Args, Debug)]
+pub struct ProgramArgs {
+    #[command(subcommand)]
+    pub command: ProgramCommand,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum ProgramCommand {
+    /// Deploy a new program; missing file and wallet names are prompted
+    Deploy(ProgramDeployArgs),
+    /// Upgrade an existing program with its upgrade authority
+    Upgrade(ProgramDeployArgs),
+    /// Show a deployed program and its upgrade authority
+    Show(ProgramTargetOptions),
+}
+
+#[derive(Args, Debug)]
+pub struct ProgramSvpiOptions {
+    /// SVPI executable (default: svpi)
+    #[arg(long = "svpi-cmd", alias = "svpi_cmd", value_name = "PATH")]
+    pub svpi_cmd: Option<PathBuf>,
+    /// SVPI vault file (otherwise use SVPI's configured storage)
+    #[arg(long, value_name = "PATH")]
+    pub svpi_file: Option<PathBuf>,
+    /// Password for the SVPI records (otherwise prompted separately without echo)
+    #[arg(long, value_name = "PASS")]
+    pub svpi_pass: Option<String>,
+}
+
+#[derive(Args, Debug)]
+pub struct ProgramTargetOptions {
+    /// SVPI record holding the program keypair or public address
+    #[arg(long, value_name = "NAME")]
+    pub program: Option<String>,
+    #[command(flatten)]
+    pub vault: ProgramSvpiOptions,
+    #[command(flatten)]
+    pub rpc: SolanaRpcOptions,
+}
+
+#[derive(Args, Debug)]
+pub struct ProgramSignerOptions {
+    /// Payer wallet in SVPI (prompt defaults to the configured wallet)
+    #[arg(long, value_name = "NAME")]
+    pub payer: Option<String>,
+    /// Upgrade authority wallet in SVPI (prompt defaults to the payer)
+    #[arg(long, value_name = "NAME")]
+    pub authority: Option<String>,
+}
+
+#[derive(Args, Debug)]
+pub struct ProgramDeployArgs {
+    /// Compiled Solana program (.so); prompted if omitted
+    #[arg(value_name = "FILE")]
+    pub file: Option<PathBuf>,
+    #[command(flatten)]
+    pub target: ProgramTargetOptions,
+    #[command(flatten)]
+    pub signers: ProgramSignerOptions,
+    /// Resume uploading to an existing deployment buffer
+    #[arg(long, value_name = "ADDRESS")]
+    pub buffer: Option<String>,
+    /// Priority fee in micro-lamports per compute unit
+    #[arg(long, value_name = "PRICE")]
+    pub compute_unit_price: Option<u64>,
 }
 
 #[derive(Args, Debug)]

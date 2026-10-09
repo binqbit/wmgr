@@ -31,6 +31,33 @@ and Base58 means a public key. For a bare phrase, use `--path` if its derivation
 Other options: `wmgr wallet <command> --help`. See [security](security.md#offline-wallet-generation)
 for backup handling.
 
+## Solana programs
+
+These commands manage upgradeable loader-v3 programs.
+
+```sh
+wmgr program deploy
+wmgr program deploy target/deploy/app.so --program app --payer deployer --authority admin
+wmgr program upgrade target/deploy/app.so --program app --payer deployer --authority admin
+wmgr program show --program app
+```
+
+Missing values are prompted: program file, program wallet, payer, then authority. Wallet names
+refer to SVPI records. The payer prompt uses the configured wallet as its default; authority
+defaults to the payer. Passwords are prompted once per distinct record, without echo.
+
+Deploy requires the program's private key; upgrade and show also accept a public-only record.
+Upgrade checks the existing authority and extends program storage when needed. Keys stay in memory.
+
+Program commands always use SVPI. RPC and SVPI connection defaults come from `.wmgr`;
+`--cluster`, `--rpc`, `--svpi-file`, and `--svpi-cmd` override them. Use
+`--compute-unit-price` to set a deployment priority fee in micro-lamports per compute unit.
+In a terminal, Solana's progress indicator shows upload and transaction confirmation progress.
+
+The deployment buffer address is printed before upload. After failure, retry with
+`--buffer ADDRESS`. If a retry requires more program space, omit `--buffer`.
+Other options: `wmgr program <command> --help`.
+
 ## Interactive mode (REPL)
 
 Start REPL:
