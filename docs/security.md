@@ -41,28 +41,12 @@ and submit signed transactions.
 
 ### SVPI integration
 
-When `--svpi` is used, `wmgr` executes SVPI in JSON mode (it expects the `svpi.response.v1`
-envelope and reads `result.data_type` + `result.data`).
+SVPI saves use password encryption and are verified by reading the record back. Existing
+names are refused, but SVPI cannot prevent concurrent writers from claiming the same name.
 
-If `--svpi-pass` is not provided, `wmgr` prompts for the SVPI password with hidden input (no
-terminal echo).
-
-#### Important caveat: password is passed as a CLI argument
-
-SVPI JSON mode requires `--password=...`. `wmgr` passes the password to `svpi` as a command-line
-argument. Depending on OS and local permissions, other processes/users may be able to observe
-arguments of running processes.
-
-Operational recommendations:
-
-- Avoid running `wmgr` on shared/multi-user hosts.
-- Prefer locked-down environments (single user, minimal background tooling).
-- Avoid redirecting stdout/stderr to log collectors when working with secrets.
-
-#### Error paths and sensitive output
-
-`wmgr` does not intentionally print secrets. SVPI output is parsed without echoing raw
-stdout/stderr in errors (to reduce the risk of leaking secrets if SVPI output is unexpected).
+Passwords are prompted without echo and preserved exactly. SVPI receives passwords and
+payloads through process arguments, which other local processes may inspect. Use a trusted
+machine. Raw SVPI output is not echoed in errors.
 
 ## Configuration file (`.wmgr`)
 

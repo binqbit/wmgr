@@ -33,10 +33,9 @@ Defaults are applied conservatively:
 
 ## SVPI integration
 
-When `--svpi` is enabled, `wmgr` executes an external `svpi` binary in JSON mode to fetch a secret
-value by name:
+`wmgr` reads and writes vault records through the external `svpi` binary in JSON mode:
 
-- secret can be a mnemonic or a hex private key (depending on target chain)
+- secrets retain their key type; Solana mnemonic records also retain their derivation path
 - `wmgr` derives the chain-specific signer in memory
 
 The SVPI executable path can be overridden via `--svpi_cmd` or `.wmgr` defaults.

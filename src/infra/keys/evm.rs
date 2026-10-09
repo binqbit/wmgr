@@ -78,7 +78,7 @@ pub fn resolve_evm_wallet(opts: &EvmKeyOptions) -> Result<LocalWallet> {
             return LocalWallet::from_str(&normalized)
                 .map_err(|err| anyhow!("Invalid private key: {err}"));
         }
-        return wallet_from_mnemonic(&data, derivation_path, &seed_passphrase);
+        return wallet_from_mnemonic(data.trim(), derivation_path, &seed_passphrase);
     }
 
     let mnemonic = opts.seed.as_ref().unwrap();
