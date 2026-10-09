@@ -7,6 +7,8 @@
 - check balances
 - send tokens
 - trade SOL/USDC on Raydium
+- generate Solana keypairs or BIP39 recovery phrases offline
+- import and export Solana wallets through SVPI
 - optional interactive REPL + saved defaults (`.wmgr`)
 
 For key management, `wmgr` can integrate with **SVPI** to fetch mnemonics/private keys from an
@@ -33,6 +35,16 @@ Run interactive mode:
 ```sh
 wmgr
 ```
+
+Create a Solana wallet:
+
+```sh
+wmgr wallet new
+wmgr wallet new --format mnemonic
+```
+
+Wallets save to SVPI by default, with local backup on skip or failure.
+See [wallet commands](docs/commands.md#solana-wallets) for import, export, and recovery.
 
 ## Build
 

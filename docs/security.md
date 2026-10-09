@@ -5,7 +5,8 @@ This document describes the security model of `wmgr` and its integration with SV
 ## Goals
 
 - Reduce long-lived exposure of wallet secrets (mnemonics/private keys).
-- Avoid storing secrets in `.wmgr`, environment variables, or other files.
+- Keep secrets out of `.wmgr`, command output, and environment variables; write
+  local wallet backups when SVPI is skipped, fails, or an export is requested.
 - Keep common wallet operations practical for day-to-day usage.
 
 ## Threat model (assumptions)
@@ -34,10 +35,15 @@ Security note: passing secrets via CLI flags (e.g. `--seed`, `--privkey`, `--svp
 into shell history, terminal scrollback, logs, or process listings. Prefer `--svpi` + interactive
 password prompt.
 
-### In-memory only
+### Offline wallet generation
 
-`wmgr` does not write mnemonics/private keys to disk. Secrets are used in memory to derive a signer
-and submit signed transactions.
+Generation uses OS cryptographic randomness and stops if it is unavailable. Secret memory
+is cleared where practical, without a guarantee after abrupt termination.
+
+Local backups are plaintext, never overwrite existing files, and use `0600` on Unix
+(default ACLs elsewhere). Keep them outside repositories and shared directories.
+BIP39 passphrases are never saved and do not encrypt backups; a JSON keypair can sign
+without the passphrase. Secrets are not printed or stored in `.wmgr`.
 
 ### SVPI integration
 
@@ -57,7 +63,8 @@ Even without secrets, treat `.wmgr` as sensitive operational metadata (RPC URLs,
 
 ## Network and RPC considerations
 
-- Solana and EVM operations require RPC endpoints.
+- Balance queries and transactions require RPC endpoints. Key generation is local;
+  SVPI accesses its configured file or device.
 - Using a third-party RPC leaks metadata (IP address, timing, addresses queried). Use your own RPC
   when possible.
 - Always verify destination addresses and amounts: `wmgr` is a signing client.

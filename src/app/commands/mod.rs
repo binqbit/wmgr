@@ -15,6 +15,7 @@ pub mod hash;
 pub mod price;
 pub mod send;
 pub mod swap;
+pub mod wallet;
 
 pub async fn run(cli: Cli) -> Result<()> {
     let mut cfg = WmgrConfig::load_from_cwd()?.unwrap_or_default();
@@ -27,6 +28,7 @@ pub async fn run(cli: Cli) -> Result<()> {
 
 pub async fn run_command(cmd: Command, cfg: &mut WmgrConfig) -> Result<()> {
     match cmd {
+        Command::Wallet(args) => wallet::handle_wallet(args, cfg),
         Command::Balance(args) => balance::handle_balance(args, cfg).await,
         Command::Send(cmd) => send::handle_send(cmd, cfg).await,
         Command::Price(args) => price::handle_price(args, cfg).await,

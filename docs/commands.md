@@ -2,6 +2,31 @@
 
 This is a command reference for `wmgr`. For a quick overview, see the top-level `README.md`.
 
+## Solana wallets
+
+```sh
+wmgr wallet new
+wmgr wallet new --format mnemonic
+wmgr wallet import --from wallet.json
+wmgr wallet export --svpi-name trading
+wmgr wallet recover --from recovery.txt --no-svpi
+```
+
+Saving defaults to SVPI and prompts for a name and password. An empty response skips it; `--no-svpi`
+saves locally. Skipping or a failed save creates `<public-key>.json` — a standard Solana
+64-byte keypair. Mnemonics also get a `.txt` with the phrase, path, and address; public-only
+wallets get only address text. Export uses the same formats. `--out-dir DIR` selects an
+existing directory instead of the current one. Existing files and SVPI entries are not replaced.
+
+Mnemonics default to 24 words and `m/44'/501'/0'`. Use `--passphrase` for BIP39 passphrase
+input during generation or recovery/import/export; it is never saved.
+
+Import detects the format automatically. For 32-byte values, hex/JSON means a private seed
+and Base58 means a public key. For a bare phrase, use `--path` if its derivation differs.
+
+Other options: `wmgr wallet <command> --help`. See [security](security.md#offline-wallet-generation)
+for backup handling.
+
 ## Interactive mode (REPL)
 
 Start REPL:

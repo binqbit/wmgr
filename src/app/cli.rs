@@ -15,6 +15,8 @@ pub struct Cli {
 
 #[derive(Subcommand, Debug)]
 pub enum Command {
+    /// Generate, import, export, and manage Solana wallets
+    Wallet(WalletArgs),
     /// Get SOL and USDC balances for an address or resolved wallet
     Balance(BalanceArgs),
     /// Send tokens on Solana or EVM
@@ -32,6 +34,116 @@ pub enum Command {
     /// Print SHA256 hash of this executable (and SVPI when enabled)
     #[command(visible_alias = "hash")]
     SelfHash,
+}
+
+#[derive(Args, Debug)]
+#[command(
+    after_help = "Examples:\n  wmgr wallet new\n  wmgr wallet new --format mnemonic\n  wmgr wallet import --from wallet.json\n  wmgr wallet export --svpi-name NAME\n\nWallets are saved to SVPI automatically. Skipping SVPI or a failed save writes <public-key>.json."
+)]
+pub struct WalletArgs {
+    #[command(subcommand)]
+    pub command: WalletCommand,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum WalletCommand {
+    /// Generate a Solana keypair or BIP39 mnemonic backup using OS randomness
+    New(WalletNewArgs),
+    /// Recover a keypair from a mnemonic backup made by wallet new
+    Recover(WalletRecoverArgs),
+    /// Import a mnemonic, keypair, private key, or public address into SVPI
+    Import(WalletImportArgs),
+    /// Export a wallet from SVPI as a Solana keypair or public address
+    Export(WalletExportArgs),
+}
+
+#[derive(Clone, Copy, Debug, ValueEnum)]
+pub enum WalletFormat {
+    Keypair,
+    Mnemonic,
+}
+
+#[derive(Args, Debug)]
+pub struct WalletSvpiOptions {
+    /// SVPI entry name (otherwise prompted when saving)
+    #[arg(long)]
+    pub svpi_name: Option<String>,
+    #[arg(long = "svpi-cmd", alias = "svpi_cmd", value_name = "PATH")]
+    pub svpi_cmd: Option<PathBuf>,
+    #[arg(long, value_name = "PATH")]
+    pub svpi_file: Option<PathBuf>,
+    /// SVPI password (otherwise hidden prompt; avoid secrets in shell history)
+    #[arg(long, value_name = "PASS")]
+    pub svpi_pass: Option<String>,
+}
+
+#[derive(Args, Debug)]
+pub struct WalletSaveOptions {
+    /// Save locally instead of SVPI
+    #[arg(long)]
+    pub no_svpi: bool,
+    /// Directory for local wallet backups when SVPI is skipped or fails
+    #[arg(long, default_value = ".", value_name = "DIR")]
+    pub out_dir: PathBuf,
+    #[command(flatten)]
+    pub svpi: WalletSvpiOptions,
+}
+
+#[derive(Args, Debug)]
+pub struct WalletImportArgs {
+    #[arg(long, value_name = "PATH")]
+    pub from: PathBuf,
+    /// Derivation path for a bare mnemonic (stored metadata takes priority)
+    #[arg(long)]
+    pub path: Option<String>,
+    /// Prompt for the mnemonic's BIP39 passphrase
+    #[arg(long)]
+    pub passphrase: bool,
+    #[command(flatten)]
+    pub save: WalletSaveOptions,
+}
+
+#[derive(Args, Debug)]
+pub struct WalletExportArgs {
+    #[command(flatten)]
+    pub svpi: WalletSvpiOptions,
+    #[arg(long, default_value = ".", value_name = "DIR")]
+    pub out_dir: PathBuf,
+    /// Derivation path for a legacy bare mnemonic
+    #[arg(long)]
+    pub path: Option<String>,
+    /// Prompt for the mnemonic's BIP39 passphrase
+    #[arg(long)]
+    pub passphrase: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct WalletNewArgs {
+    #[command(flatten)]
+    pub save: WalletSaveOptions,
+    #[arg(long, value_enum, default_value = "keypair")]
+    pub format: WalletFormat,
+    /// BIP39 word count (mnemonic format only; default 24)
+    #[arg(long, value_parser = ["12", "15", "18", "21", "24"])]
+    pub words: Option<String>,
+    /// Hardened Solana derivation path (mnemonic only; default m/44'/501'/0')
+    #[arg(long)]
+    pub path: Option<String>,
+    /// Prompt twice for a hidden BIP39 passphrase (mnemonic only)
+    #[arg(long)]
+    pub passphrase: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct WalletRecoverArgs {
+    /// Mnemonic recovery text produced by wallet new --format mnemonic
+    #[arg(long, value_name = "PATH")]
+    pub from: PathBuf,
+    #[command(flatten)]
+    pub save: WalletSaveOptions,
+    /// Prompt for the hidden BIP39 passphrase used at generation
+    #[arg(long)]
+    pub passphrase: bool,
 }
 
 #[derive(Args, Debug)]
