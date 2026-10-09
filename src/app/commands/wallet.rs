@@ -8,11 +8,16 @@ use anyhow::{bail, Context, Result};
 use zeroize::Zeroizing;
 
 use crate::{
-    app::cli::{WalletArgs, WalletCommand, WalletFormat, WalletSaveOptions, WalletSvpiOptions},
+    app::cli::{
+        WalletArgs, WalletBackend, WalletCommand, WalletFormat, WalletSaveOptions,
+        WalletSvpiOptions,
+    },
     config::{app_config::WmgrConfig, mnemonics::get_mnemonic_profile},
+    core::vanity::AddressPattern,
     infra::keys::{
         generate::{self, WalletMaterial},
         svpi,
+        vanity::{self, Backend, SearchOptions, SearchProgress},
     },
     utils::prompt::{prompt, prompt_hidden},
 };
@@ -80,6 +85,45 @@ pub fn handle_wallet(args: WalletArgs, cfg: &WmgrConfig) -> Result<()> {
             let material =
                 generate::parse_wallet(&raw, derivation_path(args.path.as_deref()), &passphrase)?;
             save_file(&material, &args.out_dir)?;
+        }
+        WalletCommand::Vanity(args) => {
+            let pattern = AddressPattern::new(
+                args.prefix.as_deref().unwrap_or_default(),
+                args.suffix.as_deref().unwrap_or_default(),
+                args.ignore_case,
+            )?;
+            check_output_directory(&args.save.out_dir)?;
+            let options = SearchOptions {
+                backend: match args.backend {
+                    WalletBackend::Auto => Backend::Auto,
+                    WalletBackend::Cpu => Backend::Cpu,
+                    WalletBackend::Gpu => Backend::Gpu,
+                },
+                threads: args.threads.map(|v| v.get()).unwrap_or_else(|| {
+                    std::thread::available_parallelism()
+                        .map(|v| v.get())
+                        .unwrap_or(1)
+                }),
+                max_attempts: args.max_attempts.map(|v| v.get()),
+            };
+            let result = vanity::search(&pattern, &options, |event| match event {
+                SearchProgress::Backend(name) => {
+                    let _ = writeln!(io::stderr(), "Searching with {name}");
+                }
+                SearchProgress::Fallback(reason) => {
+                    let _ = writeln!(io::stderr(), "GPU unavailable: {reason}; using CPU");
+                }
+                SearchProgress::Attempts(count) => {
+                    let _ = writeln!(io::stderr(), "Searched {count} candidates");
+                }
+            })?;
+            save_wallet(&WalletMaterial::Keypair(result.keypair), &args.save, cfg)?;
+            writeln!(
+                io::stdout(),
+                "Backend: {}; candidates checked: {}",
+                result.backend,
+                result.attempts
+            )?;
         }
     }
     Ok(())

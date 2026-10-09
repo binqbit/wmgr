@@ -113,6 +113,87 @@ fn address(output: &Output) -> String {
 }
 
 #[test]
+fn local_generation_and_bounded_vanity_produce_usable_keypairs() {
+    let dir = Workspace::new();
+    let generated = address(&dir.run(&["wallet", "new", "--no-svpi"]));
+    let keypair = dir.keypair(&format!("{generated}.json"));
+    assert_eq!(keypair.pubkey().to_string(), generated);
+    let message = b"functional wallet test";
+    assert!(keypair
+        .sign_message(message)
+        .verify(keypair.pubkey().as_ref(), message));
+
+    let found = address(&dir.run(&[
+        "wallet",
+        "vanity",
+        "--suffix",
+        "a",
+        "--ignore-case",
+        "--backend",
+        "cpu",
+        "--threads",
+        "2",
+        "--max-attempts",
+        "20000",
+        "--no-svpi",
+    ]));
+    assert!(found.to_ascii_lowercase().ends_with('a'));
+    assert_eq!(
+        dir.keypair(&format!("{found}.json")).pubkey().to_string(),
+        found
+    );
+}
+
+#[test]
+fn automatic_backend_falls_back_when_opencl_is_unavailable() {
+    let dir = Workspace::new();
+    let impossible = dir.run(&[
+        "wallet",
+        "vanity",
+        "--prefix",
+        "11111111111111111111111111111111",
+        "--max-attempts",
+        "1",
+        "--no-svpi",
+    ]);
+    assert!(!impossible.status.success());
+    assert!(String::from_utf8_lossy(&impossible.stderr).contains("Pattern cannot match"));
+    let run = |backend: &str| {
+        Command::new(env!("CARGO_BIN_EXE_wmgr"))
+            .current_dir(dir.0.path())
+            .env("OPENCL_DYLIB_PATH", dir.file("missing-opencl-library"))
+            .args([
+                "wallet",
+                "vanity",
+                "--suffix",
+                "a",
+                "--ignore-case",
+                "--backend",
+                backend,
+                "--threads",
+                "2",
+                "--max-attempts",
+                "20000",
+                "--no-svpi",
+            ])
+            .output()
+            .unwrap()
+    };
+    let required_gpu = run("gpu");
+    assert!(!required_gpu.status.success());
+    assert!(fs::read_dir(dir.0.path()).unwrap().next().is_none());
+
+    let automatic = run("auto");
+    let found = address(&automatic);
+    assert!(String::from_utf8_lossy(&automatic.stdout).contains("Backend: CPU"));
+    assert!(found.to_ascii_lowercase().ends_with('a'));
+    assert_eq!(
+        dir.keypair(&format!("{found}.json")).pubkey().to_string(),
+        found
+    );
+}
+
+#[test]
 fn unavailable_svpi_preserves_the_generated_wallet_as_a_local_backup() {
     let dir = Workspace::new();
     let result = dir.run(&[

@@ -38,7 +38,7 @@ pub enum Command {
 
 #[derive(Args, Debug)]
 #[command(
-    after_help = "Examples:\n  wmgr wallet new\n  wmgr wallet new --format mnemonic\n  wmgr wallet import --from wallet.json\n  wmgr wallet export --svpi-name NAME\n\nWallets are saved to SVPI automatically. Skipping SVPI or a failed save writes <public-key>.json."
+    after_help = "Examples:\n  wmgr wallet new\n  wmgr wallet new --format mnemonic\n  wmgr wallet vanity --prefix Ab\n  wmgr wallet import --from wallet.json\n  wmgr wallet export --svpi-name NAME\n\nWallets are saved to SVPI automatically. Skipping SVPI or a failed save writes <public-key>.json."
 )]
 pub struct WalletArgs {
     #[command(subcommand)]
@@ -49,6 +49,8 @@ pub struct WalletArgs {
 pub enum WalletCommand {
     /// Generate a Solana keypair or BIP39 mnemonic backup using OS randomness
     New(WalletNewArgs),
+    /// Find a new Solana keypair matching a Base58 prefix and/or suffix
+    Vanity(WalletVanityArgs),
     /// Recover a keypair from a mnemonic backup made by wallet new
     Recover(WalletRecoverArgs),
     /// Import a mnemonic, keypair, private key, or public address into SVPI
@@ -61,6 +63,13 @@ pub enum WalletCommand {
 pub enum WalletFormat {
     Keypair,
     Mnemonic,
+}
+
+#[derive(Clone, Copy, Debug, ValueEnum)]
+pub enum WalletBackend {
+    Auto,
+    Cpu,
+    Gpu,
 }
 
 #[derive(Args, Debug)]
@@ -144,6 +153,30 @@ pub struct WalletRecoverArgs {
     /// Prompt for the hidden BIP39 passphrase used at generation
     #[arg(long)]
     pub passphrase: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct WalletVanityArgs {
+    /// Address starts with this Base58 text
+    #[arg(long, required_unless_present = "suffix")]
+    pub prefix: Option<String>,
+    /// Address ends with this Base58 text (combined with --prefix when provided)
+    #[arg(long, required_unless_present = "prefix")]
+    pub suffix: Option<String>,
+    /// Compare ASCII letters without case; default is case sensitive
+    #[arg(long)]
+    pub ignore_case: bool,
+    /// auto tries OpenCL GPU and falls back to CPU; gpu requires a working GPU
+    #[arg(long, value_enum, default_value = "auto")]
+    pub backend: WalletBackend,
+    /// CPU worker threads (default: available parallelism)
+    #[arg(long, value_name = "COUNT")]
+    pub threads: Option<std::num::NonZeroUsize>,
+    /// Stop without saving if no match is found in this many candidates
+    #[arg(long, value_name = "COUNT")]
+    pub max_attempts: Option<std::num::NonZeroU64>,
+    #[command(flatten)]
+    pub save: WalletSaveOptions,
 }
 
 #[derive(Args, Debug)]

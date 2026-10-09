@@ -7,6 +7,7 @@ This is a command reference for `wmgr`. For a quick overview, see the top-level 
 ```sh
 wmgr wallet new
 wmgr wallet new --format mnemonic
+wmgr wallet vanity --prefix Ab --suffix xy
 wmgr wallet import --from wallet.json
 wmgr wallet export --svpi-name trading
 wmgr wallet recover --from recovery.txt --no-svpi
@@ -20,6 +21,9 @@ existing directory instead of the current one. Existing files and SVPI entries a
 
 Mnemonics default to 24 words and `m/44'/501'/0'`. Use `--passphrase` for BIP39 passphrase
 input during generation or recovery/import/export; it is never saved.
+
+Vanity accepts a prefix, suffix, or both. It uses GPU when available, otherwise CPU.
+Matching is case sensitive unless `--ignore-case` is set.
 
 Import detects the format automatically. For 32-byte values, hex/JSON means a private seed
 and Base58 means a public key. For a bare phrase, use `--path` if its derivation differs.

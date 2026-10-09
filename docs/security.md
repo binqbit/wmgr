@@ -16,6 +16,7 @@ This document describes the security model of `wmgr` and its integration with SV
 - You trust the machine and OS user account running `wmgr`.
 - You trust the `wmgr` binary you are running (use `wmgr self-hash` to verify).
 - You trust the RPC endpoints you connect to, or you configure your own.
+- For GPU vanity search, you trust the installed OpenCL runtime and device driver.
 
 Out of scope (not solvable by `wmgr`):
 
@@ -37,8 +38,9 @@ password prompt.
 
 ### Offline wallet generation
 
-Generation uses OS cryptographic randomness and stops if it is unavailable. Secret memory
-is cleared where practical, without a guarantee after abrupt termination.
+Generation uses OS cryptographic randomness and stops if it is unavailable. GPU search
+receives private seeds; `--backend cpu` keeps them off the device. Secret memory is cleared
+where practical, without a guarantee after driver failure or abrupt termination.
 
 Local backups are plaintext, never overwrite existing files, and use `0600` on Unix
 (default ACLs elsewhere). Keep them outside repositories and shared directories.

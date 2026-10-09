@@ -15,6 +15,7 @@ This document is a high-level overview of how pieces fit together.
   - **Solana:** keypair file (`--keyfile`), BIP39 seed (`--seed`), or SVPI (`--svpi`).
   - **EVM:** private key (`--privkey`/`--privkey-file`), BIP39 seed (`--seed`), or SVPI (`--svpi`).
 - **Local key handling:** generation and storage are separate from network clients.
+  CPU and GPU execution share validation and result checks.
 - **Network clients:**
   - **Solana:** `solana-client` RPC for balance queries and transactions.
   - **EVM:** `ethers` provider for balance queries and transactions.

@@ -8,6 +8,7 @@
 - send tokens
 - trade SOL/USDC on Raydium
 - generate Solana keypairs or BIP39 recovery phrases offline
+- find Solana addresses with a chosen prefix and/or suffix using GPU or CPU
 - import and export Solana wallets through SVPI
 - optional interactive REPL + saved defaults (`.wmgr`)
 
@@ -41,6 +42,7 @@ Create a Solana wallet:
 ```sh
 wmgr wallet new
 wmgr wallet new --format mnemonic
+wmgr wallet vanity --prefix Ab --suffix xy
 ```
 
 Wallets save to SVPI by default, with local backup on skip or failure.
@@ -51,6 +53,9 @@ See [wallet commands](docs/commands.md#solana-wallets) for import, export, and r
 For a production build you can use:
 
 - Linux/macOS: `build.sh` (builds `--release`, copies `wmgr` to `./bin/`)
+
+GPU support is included in every build. Vanity search automatically uses an available
+OpenCL GPU, otherwise CPU. Only the GPU driver/runtime is needed; no separate build is required.
 
 ## Related repositories
 
