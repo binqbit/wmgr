@@ -4,7 +4,6 @@ use anyhow::{anyhow, Result};
 use ethers::signers::Signer as EvmSigner;
 use ethers::types::Address;
 use solana_sdk::pubkey::Pubkey;
-use solana_sdk::signer::Signer as SolanaSigner;
 
 use crate::app::cli::BalanceArgs;
 use crate::app::commands::commitment_from_arg;
@@ -15,7 +14,7 @@ use crate::config::app_config::WmgrConfig;
 use crate::config::clusters::{get_cluster_config, get_usdc_mint_for_cluster};
 use crate::infra::evm::{create_evm_provider, get_native_balance};
 use crate::infra::keys::evm::resolve_evm_wallet;
-use crate::infra::keys::solana::resolve_solana_keypair;
+use crate::infra::keys::solana::resolve_solana_address;
 use crate::infra::solana::{create_rpc_client, get_balances};
 
 pub async fn handle_balance(args: BalanceArgs, cfg: &WmgrConfig) -> Result<()> {
@@ -54,8 +53,7 @@ pub async fn handle_balance(args: BalanceArgs, cfg: &WmgrConfig) -> Result<()> {
                 Pubkey::from_str(address).map_err(|err| anyhow!("Invalid address: {err}"))?
             } else {
                 let key = apply_solana_key_defaults(key.into_solana(), cfg);
-                let keypair = resolve_solana_keypair(&key)?;
-                keypair.pubkey()
+                resolve_solana_address(&key)?
             };
 
             let cluster = get_cluster_config(&sol.cluster, sol.rpc.as_deref())?;
