@@ -25,6 +25,9 @@ Technical documentation lives in `docs/`:
 - [docs/commands.md](docs/commands.md) — command reference and examples
 - [docs/architecture.md](docs/architecture.md) — high-level architecture and data flows
 
+Agent guidance: [wmgr skill](.agents/skills/wmgr/SKILL.md) covers command explanations,
+wallet operations, shell/Python coordination, and Solana program management.
+
 ## Quick Start
 
 ```sh
