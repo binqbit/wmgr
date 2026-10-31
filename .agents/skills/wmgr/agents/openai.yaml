@@ -1,0 +1,4 @@
+interface:
+  display_name: "wmgr"
+  short_description: "Explain wmgr and coordinate wallet operations"
+  default_prompt: "Use $wmgr to explain or script wallet operations with explicit networks, signers, and correct password handling."
