@@ -64,6 +64,10 @@ For a production build you can use:
 GPU support is included in every build. Vanity search automatically uses an available
 OpenCL GPU, otherwise CPU. Only the GPU driver/runtime is needed; no separate build is required.
 
+Run `cargo test --locked` for local tests. With SVPI 8.1 installed, run
+`cargo test --locked --test svpi_cli -- --ignored` for real integration checks using
+isolated temporary vaults. Set `SVPI_BIN` to select a specific executable.
+
 ## Related repositories
 
 - [svpi](https://github.com/binqbit/svpi) — Secure Vault Personal Information (encrypted vault used
