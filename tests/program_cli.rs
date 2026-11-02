@@ -43,8 +43,14 @@ impl Workspace {
         fs::write(
             self.0.path().join(format!("{name}.json")),
             serde_json::to_vec(&json!({
-                "schema": "svpi.response.v1", "ok": true,
-                "result": {"data_type": "plain", "data": data}
+                "schema": "svpi.response.v2", "ok": true,
+                "result": {
+                    "record": {
+                        "name": name, "kind": "data", "data_type": "plain",
+                        "encrypted": true, "encryption": {"mode": "password"}
+                    },
+                    "data": data
+                }
             }))
             .unwrap(),
         )

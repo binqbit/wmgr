@@ -15,6 +15,9 @@
 
 For key management, `wmgr` can integrate with **SVPI** to fetch mnemonics/private keys from an
 encrypted vault at runtime instead of storing secrets in files or env vars.
+This integration requires SVPI 8.1 or later with the `svpi.response.v2` JSON contract.
+It uses SVPI's selected `.svpi` profile and storage from the current directory
+(file, serial device, or HTTP provider); `--svpi-file` overrides the storage file.
 
 ## Documentation
 

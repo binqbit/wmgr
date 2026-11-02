@@ -26,6 +26,11 @@ subcommand's `--help`. When working in the wmgr repository, use `README.md`,
 An installed binary may differ from the checkout. A help/version failure is a
 failed executable check, not permission to try a money-moving command.
 
+SVPI integration requires SVPI 8.1 or later and `svpi.response.v2`. Check the selected
+`svpi --version` and relevant help before relying on its contract; older v1 replies
+are rejected. `wmgr` inherits SVPI's selected `.svpi` profile and file, serial-device,
+or HTTP storage from the working directory; `--svpi-file` overrides the storage file.
+
 ## Understand the requested operation
 
 Use existing project decisions and known public addresses first. Establish only
@@ -92,6 +97,9 @@ usually sufficient. For a coordinated script, follow the password patterns in
 `--svpi-pass` supplies a password; it does not authorize unrelated operations or
 unlock later processes. One shared password works only for records actually
 encrypted with that password. Keep BIP39 passphrases separate from SVPI passwords.
+Wallet saves retain automatic encryption selection: a matching named key when one
+can be unlocked, otherwise direct password encryption. Plain-text encoding is explicit,
+and the encrypted save is checked by reading the wallet back.
 
 The current integration passes passwords to SVPI in process arguments, including
 after a native hidden prompt. A wrapper cannot promise argument-free secret
@@ -109,6 +117,9 @@ Match success evidence to the operation. Exit status alone is insufficient for
 aborted swaps, wallet saves that fall back to local files, and current EVM sends.
 See the reference for each command. A timeout after submission has an unknown
 outcome until reconciled; never automatically replay the whole sequence.
+The same applies to uncertain SVPI writes: a local fallback backup may coexist with
+an accepted vault write. Existing names are refused, but local storage retains a
+check/write race; HTTP storage enforces atomic create-only writes.
 
 Report what was prepared, locally checked, actually executed, and verified on
 chain. Preserve previously granted authorization without asking again for the

@@ -49,8 +49,19 @@ without the passphrase. Secrets are not printed or stored in `.wmgr`.
 
 ### SVPI integration
 
-SVPI saves use password encryption and are verified by reading the record back. Existing
-names are refused, but SVPI cannot prevent concurrent writers from claiming the same name.
+The integration requires SVPI 8.1 or later with `svpi.response.v2`. It inherits the selected
+`.svpi` profile and file, serial-device, or HTTP storage from the working directory unless
+`--svpi-file` selects a file. HTTP access credentials remain SVPI's responsibility.
+
+Saves explicitly use plain-text encoding and automatic encryption selection: a named key
+that the supplied password unlocks, otherwise direct password encryption. The encrypted
+wallet is verified by reading it back. Existing names are refused; local storage still has
+a race between checking the name and writing it. HTTP storage enforces atomic creation
+when no revision is supplied.
+
+An unknown write outcome or failed readback does not prove that nothing was saved. The
+local fallback backup can coexist with an accepted SVPI write. Writes are not automatically
+retried; inspect the selected record before retrying or changing its name.
 
 Passwords are prompted without echo and preserved exactly. SVPI receives passwords and
 payloads through process arguments, which other local processes may inspect. Use a trusted
@@ -66,7 +77,7 @@ Even without secrets, treat `.wmgr` as sensitive operational metadata (RPC URLs,
 ## Network and RPC considerations
 
 - Balance queries and transactions require RPC endpoints. Key generation is local;
-  SVPI accesses its configured file or device.
+  SVPI accesses its configured file, device, or HTTP provider.
 - Using a third-party RPC leaks metadata (IP address, timing, addresses queried). Use your own RPC
   when possible.
 - Always verify destination addresses and amounts: `wmgr` is a signing client.

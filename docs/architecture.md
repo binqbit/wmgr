@@ -36,12 +36,25 @@ Defaults are applied conservatively:
 
 ## SVPI integration
 
-`wmgr` reads and writes vault records through the external `svpi` binary in JSON mode:
+`wmgr` reads and writes vault records through SVPI 8.1 or later in JSON mode,
+validating the `svpi.response.v2` schema, operation status, and process exit status:
 
 - secrets retain their key type; Solana mnemonic records also retain their derivation path
 - `wmgr` derives the chain-specific signer in memory
+- reads use `result.record` metadata and `result.data`; lists use `result.records`
+- saves explicitly use plain-text encoding and automatic encryption selection: a matching
+  named key when available, otherwise the supplied password directly
+- an encrypted save is verified by reading the wallet back
 
-The SVPI executable path can be overridden via `--svpi_cmd` or `.wmgr` defaults.
+The SVPI executable path can be overridden via `--svpi-cmd` (`--svpi_cmd`) or `.wmgr`
+defaults. The child process inherits the working directory so SVPI can select its `.svpi`
+default profile and file, serial-device, or HTTP storage. `--svpi-file` selects a file instead.
+SVPI manages HTTP sessions and tokens; `wmgr` does not store them in `.wmgr`.
+
+Existing names are refused before saving. Local storage retains a race between that check
+and its unconditional write; HTTP storage creates records atomically when no revision is
+supplied. Failed or unverified saves produce a local backup. If a write's outcome is unknown,
+the backup can coexist with an accepted SVPI write; inspect the record before retrying.
 
 ## Integrity check (self-hash)
 

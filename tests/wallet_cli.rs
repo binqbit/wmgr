@@ -48,40 +48,92 @@ impl Workspace {
     fn mock_vault(&self) {
         use std::os::unix::fs::PermissionsExt;
 
-        // SVPI v1 JSON CLI contract. No real executable or vault is used.
+        // SVPI 8.1 JSON CLI contract. No real executable or vault is used.
         fs::write(self.file("mock-svpi"), r#"#!/bin/sh
 set -eu
 operation=
 password=
+data_type=
+encryption=
 while [ "$#" -gt 0 ]; do
   case "$1" in
     list|set|get) operation=$1 ;;
     --mode=json|--file=*) ;;
     --password=*) password=${1#*=} ;;
+    --data-type=*) data_type=${1#*=} ;;
+    --encryption=*) encryption=${1#*=} ;;
     --) shift; break ;;
     *) exit 2 ;;
   esac
   shift
 done
 if [ -f .mock-password-error ] && [ "$operation" != list ]; then
-  printf '%s\n' '{"schema":"svpi.response.v1","ok":false,"error":{"code":"password_error","message":"secret-message-sentinel"}}'
+  printf '%s\n' '{"schema":"svpi.response.v2","ok":false,"error":{"code":"password_error","message":"secret-message-sentinel"}}'
   exit 7
+fi
+stored_encryption='{"mode":"password"}'
+if [ -f .mock-use-named-key ]; then
+  stored_encryption='{"mode":"named_key","name":"wallet-key"}'
 fi
 case "$operation" in
   list)
-    if [ -f .mock-payload ]; then
-      printf '{"schema":"svpi.response.v1","ok":true,"result":{"segments":[{"name":"%s"}]}}\n' "$(cat .mock-name)"
-    else
+    if [ -f .mock-v1 ]; then
       printf '%s\n' '{"schema":"svpi.response.v1","ok":true,"result":{"segments":[]}}'
+    elif [ -f .mock-named-key ]; then
+      printf '%s\n' '{"schema":"svpi.response.v2","ok":true,"result":{"records":[{"name":"test-wallet","kind":"encryption_key","data_type":"binary","encrypted":true,"encryption":{"mode":"password"}}],"capacity":null}}'
+    elif [ -f .mock-payload ]; then
+      printf '{"schema":"svpi.response.v2","ok":true,"result":{"records":[{"name":"%s","kind":"data","data_type":"plain","encrypted":true,"encryption":{"mode":"password"}}],"capacity":null}}\n' "$(cat .mock-name)"
+    else
+      printf '%s\n' '{"schema":"svpi.response.v2","ok":true,"result":{"records":[],"capacity":null}}'
     fi ;;
   set)
     [ -n "$password" ]
+    [ "$data_type" = plain ]
+    [ "$encryption" = auto ]
+    printf '%s\n' set >> .mock-writes
+    if [ -f .mock-set-cancelled ]; then
+      printf '%s\n' '{"schema":"svpi.response.v2","ok":true,"result":{"cancelled":true,"action":"set","context":{}}}'
+      exit 0
+    fi
+    if [ -f .mock-set-error ]; then
+      code=$(cat .mock-set-error)
+      if [ "$code" = storage_outcome_unknown ]; then
+        printf '%s' "$1" > .mock-name
+        printf '%s' "$2" > .mock-payload
+      fi
+      printf '{"schema":"svpi.response.v2","ok":false,"error":{"code":"%s","message":"secret-message-sentinel","details":{"password":"secret-details-sentinel"}}}\n' "$code"
+      exit 9
+    fi
     printf '%s' "$1" > .mock-name
     printf '%s' "$2" > .mock-payload
-    printf '{"schema":"svpi.response.v1","ok":true,"result":{"saved":true,"name":"%s","data_type":"plain","encrypted":true}}\n' "$1" ;;
+    if [ -f .mock-set-malformed-ack ]; then
+      printf '{"schema":"svpi.response.v2","ok":true,"result":{"saved":true,"name":"%s","data_type":"plain"}}\n' "$1"
+    elif [ -f .mock-set-plaintext ]; then
+      printf '{"schema":"svpi.response.v2","ok":true,"result":{"saved":true,"name":"%s","data_type":"plain","encryption":{"mode":"none"},"version":{"kind":"unversioned"}}}\n' "$1"
+    else
+      printf '{"schema":"svpi.response.v2","ok":true,"result":{"saved":true,"name":"%s","data_type":"plain","encryption":%s,"version":{"kind":"unversioned"}}}\n' "$1" "$stored_encryption"
+    fi ;;
   get)
     [ -n "$password" ]
-    printf '%s' '{"schema":"svpi.response.v1","ok":true,"result":{"data_type":"plain","encrypted":true,"data":"'
+    printf '%s\n' get >> .mock-reads
+    record_name=$1
+    record_kind=data
+    record_encrypted=true
+    if [ -f .mock-get-wrong-name ]; then record_name=other-wallet; fi
+    if [ -f .mock-get-wrong-kind ]; then record_kind=encryption_key; fi
+    if [ -f .mock-get-unencrypted ]; then record_encrypted=false; fi
+    if [ -f .mock-get-plaintext ]; then stored_encryption='{"mode":"none"}'; fi
+    if [ -f .mock-get-local-fingerprint ]; then
+      stored_encryption='{"mode":"legacy_fingerprint","fingerprint":"1234abcd"}'
+    fi
+    printf '{"schema":"svpi.response.v2","ok":true,"result":{"record":{"name":"%s","kind":"%s","data_type":"plain","encrypted":%s' "$record_name" "$record_kind" "$record_encrypted"
+    if [ ! -f .mock-get-missing-encryption ]; then
+      printf ',"encryption":%s' "$stored_encryption"
+    fi
+    printf '%s' '},"data":"'
+    if [ -f .mock-get-different-data ]; then
+      printf '%s' secret-readback-sentinel
+    else
     encoded=$(sed ':join
 $!{
 N
@@ -91,6 +143,7 @@ s/\\/\\\\/g
 s/"/\\"/g
 s/\n/\\n/g' .mock-payload)
     printf '%s' "$encoded"
+    fi
     printf '%s\n' '"}}' ;;
   *) exit 2 ;;
 esac
@@ -416,6 +469,145 @@ fn new_wallet_defaults_to_svpi_and_export_writes_a_solana_keypair() {
     let public_key = address(&result);
     assert!(String::from_utf8_lossy(&result.stdout).contains("SVPI entry: chosen-by-user"));
     assert!(!prompted.file(&format!("{public_key}.json")).exists());
+}
+
+#[cfg(unix)]
+#[test]
+fn incompatible_svpi_and_existing_named_keys_do_not_trigger_a_write() {
+    for marker in [".mock-v1", ".mock-named-key"] {
+        let dir = Workspace::new();
+        dir.mock_vault();
+        fs::write(dir.file(marker), b"").unwrap();
+
+        let result = dir.vault(&["wallet", "new"]);
+        let public_key = address(&result);
+        assert!(String::from_utf8_lossy(&result.stderr).contains("saving a local backup"));
+        assert!(!String::from_utf8_lossy(&result.stdout).contains("SVPI entry:"));
+        assert_eq!(
+            dir.keypair(&format!("{public_key}.json"))
+                .pubkey()
+                .to_string(),
+            public_key
+        );
+        assert!(
+            !dir.file(".mock-writes").exists(),
+            "{marker} allowed a write"
+        );
+        assert!(!dir.file(".mock-payload").exists());
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn encrypted_svpi_readbacks_support_named_keys_and_local_fingerprints() {
+    for (named_key, local_fingerprint) in [(false, true), (true, false), (true, true)] {
+        let dir = Workspace::new();
+        dir.mock_vault();
+        if named_key {
+            fs::write(dir.file(".mock-use-named-key"), b"").unwrap();
+        }
+        if local_fingerprint {
+            fs::write(dir.file(".mock-get-local-fingerprint"), b"").unwrap();
+        }
+
+        let result = dir.vault(&["wallet", "new"]);
+        let public_key = address(&result);
+        assert!(String::from_utf8_lossy(&result.stdout).contains("SVPI entry: test-wallet"));
+        assert!(!dir.file(&format!("{public_key}.json")).exists());
+        assert_eq!(address(&dir.vault(&["wallet", "export"])), public_key);
+        assert_eq!(
+            dir.keypair(&format!("{public_key}.json"))
+                .pubkey()
+                .to_string(),
+            public_key
+        );
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn unconfirmed_or_unencrypted_svpi_saves_preserve_a_local_backup() {
+    for marker in [
+        ".mock-set-cancelled",
+        ".mock-set-malformed-ack",
+        ".mock-set-plaintext",
+        ".mock-get-missing-encryption",
+        ".mock-get-plaintext",
+        ".mock-get-unencrypted",
+        ".mock-get-wrong-name",
+        ".mock-get-wrong-kind",
+        ".mock-get-different-data",
+    ] {
+        let dir = Workspace::new();
+        dir.mock_vault();
+        fs::write(dir.file(marker), b"").unwrap();
+
+        let result = dir.vault(&["wallet", "new"]);
+        let public_key = address(&result);
+        assert!(String::from_utf8_lossy(&result.stderr).contains("saving a local backup"));
+        assert!(!String::from_utf8_lossy(&result.stdout).contains("SVPI entry:"));
+        assert!(!String::from_utf8_lossy(&result.stdout).contains("sentinel"));
+        assert!(!String::from_utf8_lossy(&result.stderr).contains("sentinel"));
+        assert_eq!(
+            dir.keypair(&format!("{public_key}.json"))
+                .pubkey()
+                .to_string(),
+            public_key
+        );
+        assert_eq!(
+            fs::read_to_string(dir.file(".mock-writes")).unwrap(),
+            "set\n"
+        );
+        if marker == ".mock-set-cancelled" {
+            assert!(!dir.file(".mock-payload").exists());
+        }
+        if marker.starts_with(".mock-get-") {
+            assert_eq!(
+                fs::read_to_string(dir.file(".mock-reads")).unwrap(),
+                "get\n"
+            );
+        }
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn conflicting_or_uncertain_svpi_writes_are_not_retried_or_disclosed() {
+    for (code, expected_error) in [
+        ("conflict", "inspect it before retrying"),
+        ("storage_outcome_unknown", "outcome is unknown"),
+    ] {
+        let dir = Workspace::new();
+        dir.mock_vault();
+        fs::write(dir.file(".mock-set-error"), code).unwrap();
+
+        let result = dir.vault(&["wallet", "new"]);
+        let public_key = address(&result);
+        let stdout = String::from_utf8_lossy(&result.stdout);
+        let stderr = String::from_utf8_lossy(&result.stderr);
+        assert!(stderr.contains(expected_error), "{stderr}");
+        assert!(stderr.contains("saving a local backup"));
+        assert!(!stdout.contains("SVPI entry:"));
+        for output in [&stdout, &stderr] {
+            assert!(!output.contains("sentinel"));
+            assert!(!output.contains("test-only-password"));
+        }
+        assert_eq!(
+            dir.keypair(&format!("{public_key}.json"))
+                .pubkey()
+                .to_string(),
+            public_key
+        );
+        assert_eq!(
+            fs::read_to_string(dir.file(".mock-writes")).unwrap(),
+            "set\n"
+        );
+        assert!(!dir.file(".mock-reads").exists());
+        assert_eq!(
+            dir.file(".mock-payload").exists(),
+            code == "storage_outcome_unknown"
+        );
+    }
 }
 
 #[test]

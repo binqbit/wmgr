@@ -22,6 +22,10 @@ SVPI options include `--svpi-name`, `--svpi-file`, `--svpi-cmd` (also
 SVPI default can be used when no explicit key source is supplied. Scripts should
 identify their source records explicitly instead of inheriting an unrelated one.
 
+SVPI 8.1 or later with `svpi.response.v2` is required. The child inherits the current
+directory's `.svpi` default profile and file, serial-device, or HTTP storage selection;
+`--svpi-file` selects a file instead. Configure HTTP sessions/tokens in SVPI, not `.wmgr`.
+
 For ordinary commands, `--path` controls mnemonic derivation and
 `--seed-passphrase` supplies a BIP39 passphrase, defaulting to empty. Solana
 also supports `--mnemo` profiles; the default `trustwallet` path is
@@ -112,15 +116,22 @@ wmgr wallet export --svpi-name "$record" --out-dir "$private_backup_dir"
 ```
 
 `wallet` creates/imports/exports Solana material. It is not an EVM wallet creation
-API. Generation is local; SVPI storage uses its configured file/device. The
+API. Generation is local; SVPI uses its configured file, device, or HTTP provider. The
 output directory must already exist. New records are not named implicitly after
-the configured default, and existing SVPI entries/files are not overwritten.
+the configured default. Existing SVPI names and local files are refused. Local vaults
+retain a race between checking the name and writing; HTTP storage enforces atomic creation.
+
+Wallet saves explicitly use plain-text encoding and automatic encryption selection:
+a named key that the supplied password unlocks, otherwise direct password encryption.
+Encrypted saves are verified by reading the wallet back.
 
 Saving defaults to SVPI. An empty name/password, or a failed SVPI save, falls back
 to local plaintext backup and can still exit successfully. Set an existing private
 `--out-dir` outside the repository even when intending to save to SVPI. Verify the
 reported `SVPI entry:` or `File:`/`Recovery file:` outcome rather than just exit status.
 Use `--no-svpi` only when local plaintext output is intended.
+An unknown write outcome or failed readback can leave both an accepted SVPI write and
+a local backup. Inspect that record before retrying; do not automatically repeat the write.
 
 Local secret wallets use `<public-key>.json`; mnemonics also create a recovery
 `.txt`; public-only material creates address text. Unix secret files use `0600`.

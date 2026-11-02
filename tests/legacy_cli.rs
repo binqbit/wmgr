@@ -25,9 +25,16 @@ fn vault_response(directory: &Path, data: &str) {
     fs::write(
         directory.join("response.json"),
         serde_json::to_vec(&json!({
-            "schema": "svpi.response.v1",
+            "schema": "svpi.response.v2",
             "ok": true,
-            "result": {"data_type": "plain", "data": data}
+            "result": {
+                "record": {
+                    "name": "legacy-wallet", "kind": "data", "data_type": "plain",
+                    "encrypted": true,
+                    "encryption": {"mode": "legacy_fingerprint", "fingerprint": "1234abcd"}
+                },
+                "data": data
+            }
         }))
         .unwrap(),
     )
