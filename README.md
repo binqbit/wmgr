@@ -57,6 +57,12 @@ See [wallet commands](docs/commands.md#solana-wallets) for import, export, and r
 
 ## Build
 
+Install locally with the dependency versions recorded in `Cargo.lock`:
+
+```sh
+cargo install --path . --locked
+```
+
 For a production build you can use:
 
 - Linux/macOS: `build.sh` (builds `--release`, copies `wmgr` to `./bin/`)
